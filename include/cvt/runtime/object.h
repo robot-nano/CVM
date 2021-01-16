@@ -390,6 +390,13 @@ struct ObjectPtrHash {
   const ObjectName* get() const { return operator->(); }                                       \
   using ContainerType = ObjectName;
 
+/*!
+ * \brief Define object reference methods that is not nullable.
+ *
+ * \param TypeName The object type name
+ * \param ParentType The parent type of the objectRef
+ * \param ObjectName The type name of the object.
+ */
 #define CVT_DEFINE_NOTNULLABLE_OBJECT_REF_METHODS(TypeName, ParentType, ObjectName)            \
   explicit TypeName(::cvt::runtime::ObjectPtr<::cvt::runtime::Object> n) : ParentType(n) {}    \
   CVT_DEFINE_DEFAULT_COPY_MOVE_AND_ASSIGN(TypeName);                                           \
