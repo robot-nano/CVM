@@ -5,6 +5,7 @@
 #ifndef CVT_CONTAINER_H
 #define CVT_CONTAINER_H
 
+#include <cvt/runtime/memory.h>
 #include <cvt/runtime/object.h>
 
 #include <cstring>
@@ -101,12 +102,10 @@ class String : public ObjectRef {
 
   // Overload + operator
   friend String operator+(const String& lhs, const String& rhs);
-  friend String operator+(const String& lhs, const std::string & rhs);
+  friend String operator+(const String& lhs, const std::string& rhs);
   friend String operator+(const std::string& lhs, const String& rhs);
   friend String operator+(const String& lhs, const char* rhs);
   friend String operator+(const char* lhs, const String& rhs);
-
-
 };
 
 class StringObj::FromStd : public StringObj {
@@ -119,6 +118,76 @@ class StringObj::FromStd : public StringObj {
 
   friend class String;
 };
+
+inline String::String(std::string other) {
+  auto ptr = make_object<StringObj::FromStd>(std::move(other));
+  ptr->size = ptr->data_container.size();
+  ptr->data = ptr->data_container.data();
+  data_ = std::move(ptr);
+}
+
+inline String& String::operator=(std::string other) {
+  String replace(std::move(other));
+  data_.swap(replace.data_);
+  return *this;
+}
+
+inline String& String::operator=(const char* other) { return operator=(std::string(other)); }
+
+inline String operator+(const String& lhs, const String& rhs) {
+  size_t lhs_size = lhs.size();
+  size_t rhs_size = rhs.size();
+  return String::Concat(lhs.data(), lhs_size, rhs.data(), rhs_size);
+}
+
+inline String operator+(const String& lhs, const std::string& rhs) {
+  size_t lhs_size = lhs.size();
+  size_t rhs_size = rhs.size();
+  return String::Concat(lhs.data(), lhs_size, rhs.data(), rhs_size);
+}
+
+inline String operator+(const std::string& lhs, const String& rhs) {
+  size_t lhs_size = lhs.size();
+  size_t rhs_size = rhs.size();
+  return String::Concat(lhs.data(), lhs_size, rhs.data(), rhs_size);
+}
+
+inline String operator+(const char* lhs, const String& rhs) {
+  size_t lhs_size = std::strlen(lhs);
+  size_t rhs_size = rhs.size();
+  return String::Concat(lhs, lhs_size, rhs.data(), rhs_size);
+}
+
+inline String operator+(const String& lhs, const char* rhs) {
+  size_t lhs_size = lhs.size();
+  size_t rhs_size = std::strlen(rhs);
+  return String::Concat(lhs.data(), lhs_size, rhs, rhs_size);
+}
+
+// Overload < operator
+inline bool operator<(const String& lhs, const std::string& rhs) { return lhs.compare(rhs) < 0; }
+
+inline bool operator<(const std::string& lhs, const String& rhs) { return lhs.compare(rhs) < 0; }
+
+inline bool operator<(const String& lhs, const String& rhs) { return lhs.compare(rhs) < 0; }
+
+inline bool operator<(const String& lhs, const char* rhs) { return lhs.compare(rhs) < 0; }
+
+inline bool operator<(const char* lhs, const String& rhs) { return rhs.compare(lhs) > 0; }
+
+// Overload > operator
+
+inline bool operator>(const String& lhs, const std::string& rhs) { return lhs.compare(rhs) > 0; }
+
+inline bool operator>(const std::string& lhs, const String& rhs) { return lhs.compare(rhs) > 0; }
+
+inline bool operator>(const String& lhs, const String& rhs) { return lhs.compare(rhs) > 0; }
+
+inline bool operator>(const String& lhs, const char* rhs) { return lhs.compare(rhs) > 0; }
+
+inline bool operator>(const char* lhs, const String& rhs) { return rhs.compare(lhs) < 0; }
+
+// Overload  <= operator
 
 }  // namespace runtime
 }  // namespace cvt
