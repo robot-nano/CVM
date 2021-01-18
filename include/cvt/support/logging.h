@@ -8,7 +8,7 @@
 #include <iostream>
 
 #define ICHECK_BINARY_OP(name, op, x, y) \
-  if (!(x op y))                         \
+  if (!((x) op (y)))                         \
   std::cerr << __FILE__ << " " << __LINE__ << "Check failed: " << #x " " #op " " #y << " "
 
 #define ICHECK(x) \

@@ -14,6 +14,14 @@
 namespace cvt {
 namespace runtime {
 
+struct ObjectHash {
+  size_t operator()(const ObjectRef& a) const;
+};
+
+struct ObjectEqual {
+  bool operator()(const ObjectRef& a, const ObjectRef& b) const;
+};
+
 class StringObj : public Object {
  public:
   const char* data;
@@ -167,7 +175,7 @@ inline String operator+(const String& lhs, const char* rhs) {
 // Overload < operator
 inline bool operator<(const String& lhs, const std::string& rhs) { return lhs.compare(rhs) < 0; }
 
-inline bool operator<(const std::string& lhs, const String& rhs) { return lhs.compare(rhs) < 0; }
+inline bool operator<(const std::string& lhs, const String& rhs) { return rhs.compare(lhs) > 0; }
 
 inline bool operator<(const String& lhs, const String& rhs) { return lhs.compare(rhs) < 0; }
 
@@ -176,10 +184,9 @@ inline bool operator<(const String& lhs, const char* rhs) { return lhs.compare(r
 inline bool operator<(const char* lhs, const String& rhs) { return rhs.compare(lhs) > 0; }
 
 // Overload > operator
-
 inline bool operator>(const String& lhs, const std::string& rhs) { return lhs.compare(rhs) > 0; }
 
-inline bool operator>(const std::string& lhs, const String& rhs) { return lhs.compare(rhs) > 0; }
+inline bool operator>(const std::string& lhs, const String& rhs) { return rhs.compare(lhs) < 0; }
 
 inline bool operator>(const String& lhs, const String& rhs) { return lhs.compare(rhs) > 0; }
 
@@ -188,6 +195,69 @@ inline bool operator>(const String& lhs, const char* rhs) { return lhs.compare(r
 inline bool operator>(const char* lhs, const String& rhs) { return rhs.compare(lhs) < 0; }
 
 // Overload  <= operator
+inline bool operator<=(const String& lhs, const std::string& rhs) { return lhs.compare(rhs) <= 0; }
+
+inline bool operator<=(const std::string& lhs, const String& rhs) { return rhs.compare(lhs) >= 0; }
+
+inline bool operator<=(const String& lhs, const String& rhs) { return lhs.compare(rhs) <= 0; }
+
+inline bool operator<=(const String& lhs, const char* rhs) { return lhs.compare(rhs) <= 0; }
+
+inline bool operator<=(const char* lhs, const String& rhs) { return rhs.compare(lhs) >= 0; }
+
+// Overload >= operator
+inline bool operator>=(const String& lhs, const std::string& rhs) { return lhs.compare(rhs) >= 0; }
+
+inline bool operator>=(const std::string& lhs, const String& rhs) { return rhs.compare(lhs) <= 0; }
+
+inline bool operator>=(const String& lhs, const String& rhs) { return lhs.compare(rhs) >= 0; }
+
+inline bool operator>=(const String& lhs, const char* rhs) { return lhs.compare(rhs) >= 0; }
+
+inline bool operator>=(const char* lhs, const String& rhs) { return rhs.compare(lhs) <= 0; }
+
+// Overload == operator
+inline bool operator==(const String& lhs, const std::string& rhs) { return lhs.compare(rhs) == 0; }
+
+inline bool operator==(const std::string& lhs, const String& rhs) { return rhs.compare(lhs) == 0; }
+
+inline bool operator==(const String& lhs, const String& rhs) { return lhs.compare(rhs) == 0; }
+
+inline bool operator==(const String& lhs, const char* rhs) { return lhs.compare(rhs) == 0; }
+
+inline bool operator==(const char* lhs, const String& rhs) { return rhs.compare(lhs) == 0; }
+
+// Overload != operator
+inline bool operator!=(const String& lhs, const std::string& rhs) { return lhs.compare(rhs) != 0; }
+
+inline bool operator!=(const std::string& lhs, const String& rhs) { return rhs.compare(lhs) != 0; }
+
+inline bool operator!=(const String& lhs, const String& rhs) { return lhs.compare(rhs) != 0; }
+
+inline bool operator!=(const String& lhs, const char* rhs) { return lhs.compare(rhs) != 0; }
+
+inline bool operator!=(const char* lhs, const String& rhs) { return rhs.compare(lhs) != 0; }
+
+inline std::ostream& operator<<(std::ostream& out, const String& input) {
+  out.write(input.data(), input.size());
+  return out;
+}
+
+inline int String::memcmp(const char* lhs, const char* rhs, size_t lhs_count, size_t rhs_count) {
+  if (rhs == lhs && lhs_count == rhs_count) return 0;
+
+  for (size_t i = 0; i < lhs_count && i < rhs_count; ++i) {
+    if (lhs[i] < rhs[i]) return -1;
+    if (lhs[i] > rhs[i]) return 1;
+  }
+  if (lhs_count < rhs_count) {
+    return -1;
+  } else if (lhs_count > rhs_count) {
+    return 1;
+  } else {
+    return 0;
+  }
+}
 
 }  // namespace runtime
 }  // namespace cvt

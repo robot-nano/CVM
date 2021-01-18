@@ -291,7 +291,7 @@ class ObjectRef {
     return T(std::move(ref.data_));
   }
 
-  static void FFIClearAfterMove(ObjectRef* ref) { ref->data_.data_ = nullptr;  }
+  static void FFIClearAfterMove(ObjectRef* ref) { ref->data_.data_ = nullptr; }
 
   template <typename ObjectType>
   static ObjectPtr<ObjectType> GetDataPtr(const ObjectRef& ref) {
@@ -309,9 +309,7 @@ class ObjectRef {
 template <typename BaseType, typename ObjectType>
 inline ObjectPtr<BaseType> GetObjectPtr(ObjectType* ptr);
 
-struct ObjectPtrHash {
-
-};
+struct ObjectPtrHash {};
 
 /*!
  * \brief helper macro to declare a base object type that can be inherited.
@@ -459,6 +457,19 @@ inline bool Object::IsInstance() const {
   if (self != nullptr) {
     if (std::is_same<TargetType, Object>::value) return true;
   }
+}
+
+template <typename SubRef, typename BaseRef>
+inline SubRef Downcast(BaseRef ref) {
+  if (ref.defined()) {
+    ICHECK(ref->template IsInstance<typename SubRef::ContainerType>())
+        << "Downcast from " << ref->GetTypeKey() << " to " << SubRef::ContainerType::_type_key
+        << " failed.";
+  } else {
+    ICHECK(SubRef::_type_is_nullable) << "Downcast from nullptr to not nullable reference of "
+                                      << SubRef::ContainerType::_type_key;
+  }
+  return SubRef(std::move(ref.data_));
 }
 
 }  // namespace runtime
