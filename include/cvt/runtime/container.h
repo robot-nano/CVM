@@ -28,9 +28,30 @@ class StringObj : public Object {
 
   uint64_t size;
 
-  static constexpr const uint32_t _type_index = TypeIndex::kRuntimeString;
+  static constexpr const uint32_t _type_index = TypeIndex::kDynamic;
   static constexpr const char* _type_key = "runtime.String";
+//  ///////////////////////////////////////
+  //TODO:
+//  static const constexpr bool _type_final = true;
+//  static const constexpr int _type_child_slots = 0;
+//  static_assert(!Object::_type_final, "ParentObj marked as final");
+//  static uint32_t RuntimeTypeIndex() {
+//    static_assert(StringObj::_type_child_slots == 0 || Object::_type_child_slots == 0 ||
+//                  StringObj::_type_child_slots < Object::_type_child_slots_can_overflow,
+//                  "Need to set _type_child_slots when parent specifices it");
+//    if (StringObj::_type_index != ::cvt::runtime::TypeIndex::kDynamic) {
+//      return StringObj::_type_index;
+//    }
+//    return _GetOrAllocRuntimeTypeIndex();
+//  }
+//  static uint32_t _GetOrAllocRuntimeTypeIndex() {
+//    static uint32_t tidx = Object::GetOrAllocRuntimeTypeIndex(
+//        StringObj::_type_key, StringObj::_type_index, Object::_GetOrAllocRuntimeTypeIndex(),
+//        StringObj::_type_child_slots, StringObj::_type_child_slots_can_overflow);
+//    return tidx;
+//  }
   CVT_DECLARE_FINAL_OBJECT_INFO(StringObj, Object);
+//  CVT_DECLARE_BASE_OBJECT_INFO(StringObj, Object);
 
  private:
   class FromStd;
@@ -246,7 +267,7 @@ inline std::ostream& operator<<(std::ostream& out, const String& input) {
 inline int String::memcmp(const char* lhs, const char* rhs, size_t lhs_count, size_t rhs_count) {
   if (rhs == lhs && lhs_count == rhs_count) return 0;
 
-  for (size_t i = 0; i < lhs_count && i < rhs_count; ++i) {
+  for (size_t i = 0; (i < lhs_count) && (i < rhs_count); ++i) {
     if (lhs[i] < rhs[i]) return -1;
     if (lhs[i] > rhs[i]) return 1;
   }

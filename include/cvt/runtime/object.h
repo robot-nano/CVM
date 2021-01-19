@@ -277,7 +277,7 @@ class ObjectRef {
   template <typename ObjectType>
   inline const ObjectType* as() const;
 
-  using ConatinerType = Object;
+  using ContainerType = Object;
 
   static constexpr bool _type_is_nullable = true;
 
@@ -455,12 +455,22 @@ template <typename TargetType>
 inline bool Object::IsInstance() const {
   const Object* self = this;
   if (self != nullptr) {
+    // Everything is a subclass of object.
     if (std::is_same<TargetType, Object>::value) return true;
+    if (TargetType::_type_final) {
+      // if the target type is a final type
+      // then we only need to check equivalence.
+      return self->type_index_ == TargetType::RuntimeTypeIndex();
+    } else {
+      uint32_t begin = TargetType::RuntimeTypeIndex();
+    }
   }
 }
 
 template <typename SubRef, typename BaseRef>
 inline SubRef Downcast(BaseRef ref) {
+  std::cout << SubRef::ContainerType::_type_key << " " << BaseRef::ContainerType::_type_key
+            << std::endl;
   if (ref.defined()) {
     ICHECK(ref->template IsInstance<typename SubRef::ContainerType>())
         << "Downcast from " << ref->GetTypeKey() << " to " << SubRef::ContainerType::_type_key
