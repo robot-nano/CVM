@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?><diagram program="umlet" version="13.3">
+  <zoom_level>10</zoom_level>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>360</x>
+      <y>80</y>
+      <w>570</w>
+      <h>170</h>
+    </coordinates>
+    <panel_attributes>template=Derived
+ObjAllocatorBase
+--
+--
+template&lt;typename T, typename... Args&gt;
+inline make_object(args : Args&amp;&amp;...) : ObjectPtr&lt;T&gt;
+
+template&lt;typename ArrayType, typename ElemType, typename... Args&gt;
+inline make_inplace_Array(num_elems:size_t, args : Args&amp;&amp;...)
+
+</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>530</x>
+      <y>460</y>
+      <w>180</w>
+      <h>30</h>
+    </coordinates>
+    <panel_attributes>SimpleObjAllocator</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>610</x>
+      <y>240</y>
+      <w>330</w>
+      <h>240</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;-
+ObjectAllocatorBase&lt;SimpleObjAllocator&gt;</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;220.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>0</x>
+      <y>610</y>
+      <w>600</w>
+      <h>190</h>
+    </coordinates>
+    <panel_attributes>template=T
+Handler
+--
+--
+using StorageType = typename std::aligned_storage&lt;sizeof(T), alignof(T)&gt;::type
+
+template &lt;typename... Args&gt;
+_+New(SimpleObjAllocator*, args:Args&amp;&amp;...):T*_
+
+_+Deleter() : Object::FDeleter_
+
+_-Deleter_(objptr:Object*):void_</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>550</x>
+      <y>480</y>
+      <w>30</w>
+      <h>160</h>
+    </coordinates>
+    <panel_attributes>lt=-(+)
+</panel_attributes>
+    <additional_attributes>10.0;140.0;10.0;60.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>660</x>
+      <y>610</y>
+      <w>790</w>
+      <h>190</h>
+    </coordinates>
+    <panel_attributes>template=ArrayType,ElemType
+ArrayHandler
+--
+--
+using StorageType = typename std::aligned_storage&lt;sizeof(ArrayType), alignof(ArrayType)&gt;::type
+
+template &lt;typename... Args&gt;
+_+New(SimpleObjAllocator*, num_elems:size_t, args:Args&amp;&amp;...)_
+
+_+Deleter() : Object::FDeleter_
+
+_-Deleter_() : void_</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>680</x>
+      <y>480</y>
+      <w>30</w>
+      <h>160</h>
+    </coordinates>
+    <panel_attributes>lt=-(+)
+</panel_attributes>
+    <additional_attributes>10.0;140.0;10.0;10.0</additional_attributes>
+  </element>
+</diagram>

@@ -463,14 +463,26 @@ inline bool Object::IsInstance() const {
       return self->type_index_ == TargetType::RuntimeTypeIndex();
     } else {
       uint32_t begin = TargetType::RuntimeTypeIndex();
+
+      if (TargetType::_type_child_slots != 0) {
+        uint32_t end = begin + TargetType::_type_child_slots;
+        if (self->type_index_ >= begin && self->type_index_ < end) return true;
+      } else {
+        if (self->type_index_ == begin) return true;
+      }
+      if (!TargetType::_type_child_slots_can_overflow) return false;
+
+      if (self->type_index_ < TargetType::RuntimeTypeIndex()) return false;
+
+      return self->DerivedFrom(TargetType::RuntimeTypeIndex());
     }
+  } else {
+    return false;
   }
 }
 
 template <typename SubRef, typename BaseRef>
 inline SubRef Downcast(BaseRef ref) {
-  std::cout << SubRef::ContainerType::_type_key << " " << BaseRef::ContainerType::_type_key
-            << std::endl;
   if (ref.defined()) {
     ICHECK(ref->template IsInstance<typename SubRef::ContainerType>())
         << "Downcast from " << ref->GetTypeKey() << " to " << SubRef::ContainerType::_type_key
