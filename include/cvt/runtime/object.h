@@ -119,6 +119,7 @@ class CVT_DLL Object {
   // friend classes
   template <typename>
   friend class ObjAllocatorBase;
+  friend class SimpleObjAllocator;
   template <typename>
   friend class ObjectPtr;
   friend class CVTRetValue;
@@ -239,6 +240,7 @@ class ObjectPtr {
   friend class ObjectPtr;
   template <typename>
   friend class ObjAllocatorBase;
+  friend class SimpleObjAllocator;
   friend class CVTPODValue_;
   friend class CVTArgsSetter;
   friend class CVTRetValue;
