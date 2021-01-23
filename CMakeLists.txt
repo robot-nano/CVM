@@ -6,7 +6,8 @@ set(CMAKE_CXX_FLAGS "-std=c++11 -fPIC")
 include_directories("include")
 
 file(GLOB OBJ_SRCS
-        src/runtime/*.cc)
+        src/runtime/*.cc
+        src/node/*.cc)
 
 add_library(cvt_objs OBJECT ${OBJ_SRCS})
 

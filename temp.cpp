@@ -2,32 +2,26 @@
 // Created by WangJingYu on 2021/1/21.
 //
 
-#include <type_traits>
 #include <iostream>
-#include <vector>
+#include <string>
+#include <type_traits>
 
-class Func {
+template <typename T, std::size_t N>
+class static_vector {
+  using StorageType = typename std::aligned_storage<1024, 1024>::type;
  public:
-  Func& operator=(const Func& other) { this->data_ = other.data_ + 1;  return *this; }
-  int mem() const { return data_; }
-
- public:
-  int data_;
+  template <typename... Args>
+  void emplace_back(Args&&... args) {
+    StorageType *data = new StorageType();
+    std::cout << alignof(*data) << std::endl;
+  }
 };
 
-Func func;
-Func fu;
+struct alignas(128) ST {
+  int a;
+};
 
-std::vector<int> vec;
-int a = 3;
-#define Expr &a
-
-int main(int argc, char** argv) {
-  if (std::is_lvalue_reference<decltype((Expr))>::value) {
-    std::cout << "is lvalue reference " << std::endl;
-  } else if (std::is_rvalue_reference<decltype((Expr))>::value) {
-    std::cout << "is rvalue reference " << std::endl;
-  } else {
-    std::cout << "is prvalue" << std::endl;
-  }
+int main() {
+  static_vector<ST, 10> vec;
+  vec.emplace_back(ST());
 }

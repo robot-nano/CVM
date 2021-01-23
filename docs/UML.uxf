@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?><diagram program="umlet" version="13.3">
-  <zoom_level>10</zoom_level>
+  <zoom_level>7</zoom_level>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>360</x>
-      <y>80</y>
-      <w>570</w>
-      <h>170</h>
+      <x>252</x>
+      <y>252</y>
+      <w>399</w>
+      <h>119</h>
     </coordinates>
     <panel_attributes>template=Derived
 ObjAllocatorBase
@@ -24,10 +24,10 @@ inline make_inplace_Array(num_elems:size_t, args : Args&amp;&amp;...)
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>530</x>
-      <y>460</y>
-      <w>180</w>
-      <h>30</h>
+      <x>371</x>
+      <y>469</y>
+      <w>126</w>
+      <h>21</h>
     </coordinates>
     <panel_attributes>SimpleObjAllocator</panel_attributes>
     <additional_attributes/>
@@ -35,22 +35,22 @@ inline make_inplace_Array(num_elems:size_t, args : Args&amp;&amp;...)
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>610</x>
-      <y>240</y>
-      <w>330</w>
-      <h>240</h>
+      <x>427</x>
+      <y>364</y>
+      <w>231</w>
+      <h>119</h>
     </coordinates>
     <panel_attributes>lt=&lt;&lt;-
 ObjectAllocatorBase&lt;SimpleObjAllocator&gt;</panel_attributes>
-    <additional_attributes>10.0;10.0;10.0;220.0</additional_attributes>
+    <additional_attributes>10.0;10.0;10.0;150.0</additional_attributes>
   </element>
   <element>
     <id>UMLClass</id>
     <coordinates>
       <x>0</x>
-      <y>610</y>
-      <w>600</w>
-      <h>190</h>
+      <y>574</y>
+      <w>420</w>
+      <h>133</h>
     </coordinates>
     <panel_attributes>template=T
 Handler
@@ -69,10 +69,10 @@ _-Deleter_(objptr:Object*):void_</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>550</x>
-      <y>480</y>
-      <w>30</w>
-      <h>160</h>
+      <x>385</x>
+      <y>483</y>
+      <w>21</w>
+      <h>112</h>
     </coordinates>
     <panel_attributes>lt=-(+)
 </panel_attributes>
@@ -81,10 +81,10 @@ _-Deleter_(objptr:Object*):void_</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>660</x>
-      <y>610</y>
-      <w>790</w>
-      <h>190</h>
+      <x>462</x>
+      <y>574</y>
+      <w>553</w>
+      <h>133</h>
     </coordinates>
     <panel_attributes>template=ArrayType,ElemType
 ArrayHandler
@@ -103,13 +103,67 @@ _-Deleter_() : void_</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>680</x>
-      <y>480</y>
-      <w>30</w>
-      <h>160</h>
+      <x>476</x>
+      <y>483</y>
+      <w>21</w>
+      <h>112</h>
     </coordinates>
     <panel_attributes>lt=-(+)
 </panel_attributes>
     <additional_attributes>10.0;140.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLUseCase</id>
+    <coordinates>
+      <x>56</x>
+      <y>882</y>
+      <w>329</w>
+      <h>77</h>
+    </coordinates>
+    <panel_attributes>Use case 2
+bg=blue
+--
+make_object(args : Args&amp;&amp;...) : ObjectPtr&lt;T&gt;
+
+</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>154</x>
+      <y>294</y>
+      <w>112</w>
+      <h>602</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;.</panel_attributes>
+    <additional_attributes>140.0;10.0;10.0;10.0;20.0;840.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLUseCase</id>
+    <coordinates>
+      <x>588</x>
+      <y>875</y>
+      <w>476</w>
+      <h>70</h>
+    </coordinates>
+    <panel_attributes>Use case 2
+bg=blue
+--
+*make_inplace_array_object(num_elems:size_t, args : Args&amp;&amp;...) : ObjectPtr&lt;T&gt;*
+
+</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>616</x>
+      <y>322</y>
+      <w>105</w>
+      <h>567</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;.</panel_attributes>
+    <additional_attributes>10.0;10.0;120.0;10.0;130.0;790.0</additional_attributes>
   </element>
 </diagram>

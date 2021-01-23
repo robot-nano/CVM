@@ -22,6 +22,55 @@ struct ObjectEqual {
   bool operator()(const ObjectRef& a, const ObjectRef& b) const;
 };
 
+template <typename ArrayType, typename ElemType>
+class InplaceArrayBase {
+ public:
+  const ElemType& operator[](size_t idx) const {
+    size_t size = Self()->GetSize();
+    ICHECK_LT(idx, size) << "Index " << idx << " out of bounds " << size << "\n";
+    return *(reinterpret_cast<ElemType*>(AddressOf(idx)));
+  }
+
+  ElemType& operator[](size_t idx) {
+    size_t size = Self()->GetSize();
+    ICHECK_LT(idx, size) << "Index " << idx << " out of bounds " << size << "\n";
+    return *(reinterpret_cast<ElemType*>(AddressOf(idx)));
+  }
+
+  ~InplaceArrayBase() {
+    if (!(std::is_standard_layout<ElemType>::value && std::is_trivial<ElemType>::value)) {
+      size_t size = Self()->GetSize();
+      for (size_t i = 0; i < size; ++i) {
+        ElemType* fp = reinterpret_cast<ElemType*>(AddressOf(i));
+        fp->ElemType::~ElemType();
+      }
+    }
+  }
+
+ protected:
+  template <typename... Args>
+  void EmplaceInit(size_t idx, Args&&... args) {
+    void* field_ptr = AddressOf(idx);
+    new (field_ptr) ElemType(std::forward<Args>(args)...);
+  }
+
+  inline ArrayType* Self() const {
+    return static_cast<ArrayType*>(const_cast<InplaceArrayBase*>(this));
+  }
+
+  void* AddressOf(size_t idx) const {
+    static_assert(
+        alignof(ArrayType) % alignof(ElemType) == 0 && sizeof(ArrayType) % alignof(ElemType) == 0,
+        "The size and alignment of ArrayType should respect "
+        "ElemType's alignment.");
+
+    size_t kDataStart = sizeof(ArrayType);
+    ArrayType* self = Self();
+    char* data_start = reinterpret_cast<char*>(self) + kDataStart;
+    return data_start + idx * sizeof(ElemType);
+  }
+};
+
 class StringObj : public Object {
  public:
   const char* data;
@@ -30,28 +79,7 @@ class StringObj : public Object {
 
   static constexpr const uint32_t _type_index = TypeIndex::kDynamic;
   static constexpr const char* _type_key = "runtime.String";
-//  ///////////////////////////////////////
-  //TODO:
-//  static const constexpr bool _type_final = true;
-//  static const constexpr int _type_child_slots = 0;
-//  static_assert(!Object::_type_final, "ParentObj marked as final");
-//  static uint32_t RuntimeTypeIndex() {
-//    static_assert(StringObj::_type_child_slots == 0 || Object::_type_child_slots == 0 ||
-//                  StringObj::_type_child_slots < Object::_type_child_slots_can_overflow,
-//                  "Need to set _type_child_slots when parent specifices it");
-//    if (StringObj::_type_index != ::cvt::runtime::TypeIndex::kDynamic) {
-//      return StringObj::_type_index;
-//    }
-//    return _GetOrAllocRuntimeTypeIndex();
-//  }
-//  static uint32_t _GetOrAllocRuntimeTypeIndex() {
-//    static uint32_t tidx = Object::GetOrAllocRuntimeTypeIndex(
-//        StringObj::_type_key, StringObj::_type_index, Object::_GetOrAllocRuntimeTypeIndex(),
-//        StringObj::_type_child_slots, StringObj::_type_child_slots_can_overflow);
-//    return tidx;
-//  }
   CVT_DECLARE_FINAL_OBJECT_INFO(StringObj, Object);
-//  CVT_DECLARE_BASE_OBJECT_INFO(StringObj, Object);
 
  private:
   class FromStd;
@@ -282,5 +310,16 @@ inline int String::memcmp(const char* lhs, const char* rhs, size_t lhs_count, si
 
 }  // namespace runtime
 }  // namespace cvt
+
+namespace std {
+
+template <>
+struct hash<::cvt::runtime::String> {
+  std::size_t operator()(const ::cvt::runtime::String& str) const {
+    return ::cvt::runtime::String::HashBytes(str.data(), str.size());
+  }
+};
+
+}  // namespace std
 
 #endif  // CVT_CONTAINER_H
