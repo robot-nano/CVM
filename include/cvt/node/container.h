@@ -19,6 +19,8 @@ namespace cvt {
 using runtime::Downcast;
 using runtime::make_object;
 using runtime::Object;
+using runtime::ObjectEqual;
+using runtime::ObjectHash;
 using runtime::ObjectPtr;
 using runtime::ObjectPtrHash;
 using runtime::ObjectRef;
@@ -124,7 +126,7 @@ class MapNode : public Object {
 class SmallMapNode : public MapNode,
                      public runtime::InplaceArrayBase<SmallMapNode, MapNode::KVType> {
  private:
-  static constexpr uint64_t kIntSize = 2;
+  static constexpr uint64_t kInitSize = 2;
   static constexpr uint64_t kMaxSize = 4;
 
  public:
@@ -133,7 +135,74 @@ class SmallMapNode : public MapNode,
 
   ~SmallMapNode() = default;
 
+  size_t count(const key_type& key) const { return find(key).index < size_; }
+
+  const mapped_type& at(const key_type& key) const {
+    iterator itr = find(key);
+    ICHECK(itr.index < size_) << "IndexError: key is not in Map";
+    return itr->second;
+  }
+
+  mapped_type& at(const key_type& key) {
+    iterator itr = find(key);
+    ICHECK(itr.index < size_) << "IndexError: key is not in Map";
+    return itr->second;
+  }
+
+  iterator begin() const { return iterator(0, this); }
+
+  iterator end() const { return iterator(size_, this); }
+
+  iterator find(const key_type& key) const {
+    KVType* ptr = static_cast<KVType*>(AddressOf(0));
+    for (uint64_t i = 0; i < size_; ++i, ++ptr) {
+      if (ObjectEqual()(ptr->first, key)) {
+        return iterator(i, this);
+      }
+    }
+    return iterator(size_, this);
+  }
+
+  void erase(const iterator& position) { Erase(position.index); }
+
  protected:
+  /*!
+   * \brief Remove a position in SmallMapNode
+   * \param index The position to be removed
+   */
+  void Erase(const uint64_t index) {
+    if (index >= size_) {
+      return;
+    }
+    KVType* begin = static_cast<KVType*>(AddressOf(0));
+    KVType* last = begin + (size_ - 1);
+    if (index + 1 == size_) {
+      last->first.ObjectRef::~ObjectRef();
+      last->second.ObjectRef::~ObjectRef();
+    } else {
+      *(begin + index) = std::move(*last);
+    }
+    size_ -= 1;
+  }
+
+  static ObjectPtr<SmallMapNode> Empty(uint64_t n = kInitSize) {
+    using cvt::runtime::make_inplace_array_object;
+    ObjectPtr<SmallMapNode> p = make_inplace_array_object<SmallMapNode, KVType>(n);
+    p->size_ = 0;
+    p->slots_ = n;
+    return p;
+  }
+
+  template <typename IterType>
+  static ObjectPtr<SmallMapNode> CreateFromRange(uint64_t n, IterType first, IterType last) {
+    ObjectPtr<SmallMapNode> p = Empty(n);
+    KVType* ptr = static_cast<KVType*>(p->AddressOf(0));
+    for (; first != last; ++first, ++p->size_) {
+      new (ptr++) KVType(*first);
+    }
+    return p;
+  }
+
   friend class MapNode;
   friend class DenseMapNode;
   friend class runtime::InplaceArrayBase<SmallMapNode, MapNode::KVType>;
@@ -173,7 +242,251 @@ class DenseMapNode : public MapNode {
   iterator end() const {}
 
  private:
-  ListNode Search(const key_type& key) const {}
+  ListNode Search(const key_type& key) const {
+    if (this->size_ == 0) {
+      return ListNode();
+    }
+    for (ListNode iter = GetListHead(ObjectHash()(key)); !iter.IsNone(); iter.MoveToNext(this)) {
+      if (ObjectEqual()(key, iter.key())) {
+        return iter;
+      }
+    }
+    return ListNode();
+  }
+
+  mapped_type& At(const key_type& key) const {
+    ListNode iter = Search(key);
+    ICHECK(!iter.IsNone()) << "IndexError: key is not in Map";
+    return iter.Val();
+  }
+
+  bool TryInsert(const key_type& key, ListNode* result) {
+    if (slots_ == 0) return false;
+
+    ListNode iter = IndexFromHash(ObjectHash()(key));
+
+    if (iter.IsEmpty()) {
+      iter.NewHead(KVType(key, ObjectRef(nullptr)));
+      this->size_ += 1;
+      *result = iter;
+      return true;
+    }
+
+    if (!iter.IsHead()) {
+      return IsFull() ? false : TrySpareListHead(iter, key, result);
+    }
+
+    ListNode next = iter;
+    do {
+      if (ObjectEqual()(key, next.key())) {
+        *result = next;
+        return true;
+      }
+      iter = next;
+    } while (next.MoveToNext(this));
+
+    if (IsFull()) {
+      return false;
+    }
+
+    uint8_t jump;
+    if (!iter.GetNextEmpty(this, &jump, result)) {
+      return false;
+    }
+    result->NewTail(KVType(key, ObjectRef(nullptr)));
+    iter.SetJump(jump);
+    this->size_ += 1;
+    return true;
+  }
+
+  bool TrySpareListHead(ListNode target, const key_type& key, ListNode* result) {
+    ListNode r = target;
+    ListNode w = target.FindPrev(this);
+
+    bool is_first = true;
+    uint8_t r_meta, jump;
+    ListNode empty;
+    do {
+      if (!w.GetNextEmpty(this, &jump, &empty)) {
+        return false;
+      }
+
+      empty.NewTail(std::move(r.Data()));
+
+      r_meta = r.Meta();
+      if (is_first) {
+        is_first = false;
+        r.SetProtected();
+      } else {
+        r.SetEmpty();
+      }
+      w.SetJump(jump);
+      w = empty;
+    } while (r.MoveToNext(this, r_meta));
+
+    target.NewHead(KVType(key, ObjectRef(nullptr)));
+    this->size_ += 1;
+    *result = target;
+    return true;
+  }
+
+  void Erase(const ListNode& iter) {
+    this->size_ -= 1;
+    if (!iter.HasNext()) {
+      if (!iter.IsHead()) {
+        iter.FindPrev(this).SetJump(0);
+      }
+      iter.Data().KVType::~KVType();
+      iter.SetEmpty();
+    } else {
+      ListNode last = iter, prev = iter;
+      for (last.MoveToNext(this); last.HasNext(); prev = last, last.MoveToNext(this)) {
+      }
+      iter.Data() = std::move(last.Data());
+      last.SetEmpty();
+      prev.SetJump(0);
+    }
+  }
+
+  void Reset() {
+    uint64_t n_blocks = CalcNumBlocks(this->slots_);
+    for (uint64_t bi = 0; bi < n_blocks; ++bi) {
+      uint8_t* meta_ptr = data_[bi].bytes;
+      KVType* data_ptr = reinterpret_cast<KVType*>(data_[bi].bytes + kBlockCap);
+      for (int j = 0; j < kBlockCap; ++j, ++meta_ptr, ++data_ptr) {
+        uint8_t& meta = *meta_ptr;
+        if (meta != uint8_t(kProtectedSlot) && meta != uint8_t(kEmptySlot)) {
+          meta = uint8_t(kEmptySlot);
+          data_ptr->KVType::~KVType();
+        }
+      }
+    }
+    ReleaseMemory();
+  }
+
+  void ReleaseMemory() {
+    delete[] data_;
+    data_ = nullptr;
+    slots_ = 0;
+    size_ = 0;
+    fib_shift_ = 63;
+  }
+
+  static ObjectPtr<DenseMapNode> Empty(uint32_t fib_shift, uint64_t n_slots) {
+    ICHECK_GT(n_slots, uint64_t(SmallMapNode::kMaxSize));
+    ObjectPtr<DenseMapNode> p = make_object<DenseMapNode>();
+    uint64_t n_blocks = CalcNumBlocks(n_slots - 1);
+    Block* block = p->data_ = new Block[n_blocks];
+    p->slots_ = n_slots - 1;
+    p->size_ = 0;
+    p->fib_shift_ = fib_shift;
+    for (uint64_t i = 0; i < n_blocks; ++i, ++block) {
+      std::fill(block->bytes, block->bytes + kBlockCap, uint8_t(kEmptySlot));
+    }
+    return p;
+  }
+
+  static ObjectPtr<DenseMapNode> CopyFrom(DenseMapNode* from) {
+    ObjectPtr<DenseMapNode> p = make_object<DenseMapNode>();
+    uint64_t n_blocks = CalcNumBlocks(from->slots_);
+    p->data_ = new Block[n_blocks];
+    p->slots_ = from->slots_;
+    p->size_ = from->size_;
+    p->fib_shift_ = from->fib_shift_;
+    for (uint64_t bi = 0; bi < n_blocks; ++bi) {
+      uint8_t* meta_ptr_from = from->data_[bi].bytes;
+      KVType* data_ptr_from = reinterpret_cast<KVType*>(from->data_ + kBlockCap);
+      uint8_t* meta_ptr_to = p->data_[bi].bytes;
+      KVType* data_ptr_to = reinterpret_cast<KVType*>(p->data_[bi].bytes + kBlockCap);
+      for (int j = 0; j < kBlockCap;
+           ++j, ++meta_ptr_from, ++data_ptr_from, ++meta_ptr_from, ++data_ptr_from) {
+        uint8_t& meta = *meta_ptr_to = *meta_ptr_from;
+        ICHECK(meta != kProtectedSlot);
+        if (meta != uint8_t(kEmptySlot)) {
+          new (data_ptr_to) KVType(*data_ptr_from);
+        }
+      }
+    }
+    return p;
+  }
+
+  static void InsertMaybeHash(const KVType& kv, ObjectPtr<Object>* map) {
+    DenseMapNode* map_node = static_cast<DenseMapNode*>(map->get());
+    ListNode iter;
+    if (map_node->TryInsert(kv.first, &iter)) {
+      iter.Val() = kv.second;
+      return;
+      ;
+    }
+    ICHECK_GT(map_node->slots_, uint64_t(SmallMapNode::kMaxSize));
+    ObjectPtr<Object> p = Empty(map_node->fib_shift_ - 1, map_node->slots_ * 2 + 2);
+    InsertMaybeHash(kv, &p);
+    uint64_t n_blocks = CalcNumBlocks(map_node->slots_);
+    for (uint64_t bi = 0; bi < n_blocks; ++bi) {
+      uint8_t* meta_ptr = map_node->data_[bi].bytes;
+      KVType* data_ptr = reinterpret_cast<KVType*>(map_node->data_[bi].bytes + kBlockCap);
+      for (int j = 0; j < kBlockCap; ++j, ++meta_ptr, ++data_ptr) {
+        uint8_t& meta = *meta_ptr;
+        if (meta != uint8_t(kProtectedSlot) && meta != uint8_t(kEmptySlot)) {
+          meta = uint8_t(kEmptySlot);
+          KVType kv = std::move(*data_ptr);
+          InsertMaybeReHash(kv, &p);
+        }
+      }
+    }
+    map_node->ReleaseMemory();
+    *map = p;
+  }
+
+  bool IsFull() const { return size_ + 1 > (slots_ + 1) * kMaxLoadFactor; }
+
+  uint64_t DecItr(uint64_t index) const {
+    while (index != 0) {
+      index -= 1;
+      if (!ListNode(index, this).IsEmpty()) {
+        return index;
+      }
+    }
+    return slots_ + 1;
+  }
+
+  KVType* DeRefItr(uint64_t index) const { return &ListNode(index, this).Data(); }
+
+  ListNode IndexFromHash(uint64_t hash_value) const {
+    return ListNode(FibHash(hash_value, fib_shift_), this);
+  }
+
+  ListNode GetListHead(uint64_t hash_value) const {
+    ListNode node = IndexFromHash(hash_value);
+    return node.IsHead() ? node : ListNode();
+  }
+
+  static uint64_t CalcNumBlocks(uint64_t n_slots_m1) {
+    uint64_t n_slots = n_slots_m1 > 0 ? n_slots_m1 + 1 : 0;
+    return (n_slots + kBlockCap - 1) / kBlockCap;
+  }
+
+  static void CalcTableSize(uint64_t cap, uint32_t* fib_shift, uint64_t* n_slots) {
+    uint32_t shift = 64;
+    uint64_t slots = 1;
+    for (uint64_t c = cap; c; c >>= 1) {
+      shift -= 1;
+      slots <<= 1;
+    }
+    ICHECK_GT(slots, cap);
+    if (slots < cap * 2) {
+      *fib_shift = shift - 1;
+      *n_slots = slots << 1;
+    } else {
+      *fib_shift = shift;
+      *n_slots = slots;
+    }
+  }
+
+  static uint64_t FibHash(uint64_t hash_value, uint32_t fib_shift) {
+    constexpr uint64_t coeff = 11400714819323198485ull;
+    return (coeff * hash_value) >> fib_shift;
+  }
 
   /*! \brief The implicit in-place linked list used to index a chain */
   struct ListNode {
@@ -214,7 +527,7 @@ class DenseMapNode : public MapNode {
     /*! \brief Construct a tail of linked list in-place */
     void NewTail(KVType v) const {
       Meta() = 0b00000000;
-      new (&Data()) KVType (std::move(v));
+      new (&Data()) KVType(std::move(v));
     }
     /*! \brief If the entry has next entry on the linked list */
     bool HasNext() const { return kNextProbeLocation[Meta() & 0b01111111] != 0; }
@@ -234,7 +547,23 @@ class DenseMapNode : public MapNode {
     bool MoveToNext(const DenseMapNode* self) { return MoveToNext(self, Meta()); }
     /*! \brief Get the previous entry on the linked list */
     ListNode FindPrev(const DenseMapNode* self) const {
-      //TODO:
+      ListNode next = self->IndexFromHash(ObjectHash()(key()));
+      ListNode prev = next;
+      for (next.MoveToNext(self); index != next.index; prev = next, next.MoveToNext(self)) {
+      }
+      return prev;
+    }
+
+    bool GetNextEmpty(const DenseMapNode* self, uint8_t* jump, ListNode* result) const {
+      for (uint8_t idx = 1; idx < kNumJumpDists; ++idx) {
+        ListNode candidate((index + kNextProbeLocation[idx]) & (self->slots_), self);
+        if (candidate.IsEmpty()) {
+          *jump = idx;
+          *result = candidate;
+          return true;
+        }
+      }
+      return false;
     }
 
     /*! \brief Index on the real array */
@@ -278,31 +607,31 @@ class DenseMapNode : public MapNode {
   friend class MapNode;
 };  // class DenseMapNode
 
-#define CVT_DISPATCH_MAP_CONST(base, var, body) \
-  {                                             \
-    using TSmall = const SmallMapNode*;         \
-    using TDense = const DenseMapNode*;         \
-    uint64_t slots = base->slots_;              \
-    if (slots <= SmallMapNode::kMaxSize) {      \
-      TSmall var = static_cast<TSmall>(base);   \
-      body;                                     \
-    } else {                                    \
-      TDense var = static_cast<TDense>(base);   \
-      body;                                     \
-    }                                           \
-  }
-
-inline size_t MapNode::count(const key_type& key) const {
-  CVT_DISPATCH_MAP_CONST(this, p, { return p->count(key); });
-}
-
-inline const MapNode::mapped_type& MapNode::at(const key_type& key) const {
-  CVT_DISPATCH_MAP_CONST(this, p, { return p->at(key); })
-}
-
-inline MapNode::mapped_type& MapNode::at(const key_type& key) {
-//  CVT_DISPATCH_MAP_CONST(this, p, {return p->at(key)})
-}
+//#define CVT_DISPATCH_MAP_CONST(base, var, body) \
+//  {                                             \
+//    using TSmall = const SmallMapNode*;         \
+//    using TDense = const DenseMapNode*;         \
+//    uint64_t slots = base->slots_;              \
+//    if (slots <= SmallMapNode::kMaxSize) {      \
+//      TSmall var = static_cast<TSmall>(base);   \
+//      body;                                     \
+//    } else {                                    \
+//      TDense var = static_cast<TDense>(base);   \
+//      body;                                     \
+//    }                                           \
+//  }
+//
+// inline size_t MapNode::count(const key_type& key) const {
+//  CVT_DISPATCH_MAP_CONST(this, p, { return p->count(key); });
+//}
+//
+// inline const MapNode::mapped_type& MapNode::at(const key_type& key) const {
+//  CVT_DISPATCH_MAP_CONST(this, p, { return p->at(key); })
+//}
+//
+// inline MapNode::mapped_type& MapNode::at(const key_type& key) {
+//  //  CVT_DISPATCH_MAP_CONST(this, p, {return p->at(key)})
+//}
 
 }  // namespace cvt
 

@@ -22,9 +22,53 @@ struct ObjectEqual {
   bool operator()(const ObjectRef& a, const ObjectRef& b) const;
 };
 
+/*!
+ * \brief Base template for classes with array like memory layout.
+ *
+ *      It provides general methods to access the memory. The memory
+ *      layout is ArrayType + [ElemType]. The alignment of ArrayType
+ *      and ElemType is handled by the memory allocator.
+ *
+ * \tparam ArrayType The array header type, contains object specific metadata.
+ * \tparam ElemType The type of objects stored in the array right after
+ * ArrayType.
+ *
+ * \code
+ * // Example usage of the template to define a simple array wrapper
+ * class ArrayObj : public InplaceArrayBase<ArrayObj, int> {
+ *  public:
+ *   // Wrap EmplaceInit to initialize the elements
+ *   template <typename Iterator>
+ *   void Init(Iterator begin, Iterator end) {
+ *     size_t num_elems = std::distance(begin, end);
+ *     auto it = begin;
+ *     this->size = 0;
+ *     for (size_t i = 0; i < num_elems; ++i) {
+ *       InplaceArrayBase::EmplaceInit(i, *it++);
+ *       this->size++;
+ *     }
+ *   }
+ * };
+ *
+ * void test_function() {
+ *   vector<Elem> fields;
+ *   auto ptr = make_inplace_array_object<ArrayObj, Elem>(fields.size());
+ *   ptr->Init(fields.begin(), fields.end());
+ *
+ *   // Access the 0th element in the array.
+ *   assert(ptr->operator[](0) == fields[0]);
+ * }
+ *
+ * \endcode
+ */
 template <typename ArrayType, typename ElemType>
 class InplaceArrayBase {
  public:
+  /*!
+   * \brief Access element at index
+   * \param idx The index of the element.
+   * \return Const reference to ElemType at the index.
+   */
   const ElemType& operator[](size_t idx) const {
     size_t size = Self()->GetSize();
     ICHECK_LT(idx, size) << "Index " << idx << " out of bounds " << size << "\n";
@@ -46,16 +90,30 @@ class InplaceArrayBase {
       }
     }
   }
-
  protected:
+  /*!
+   * \brief Construct a value in place with the arguments
+   *
+   * \tparam Args Type parameters of the arguments.
+   * \param idx Index of the element.
+   * \param args Arguments to construct the new value.
+   *
+   * \note Please make sure ArrayType::GetSize returns 0 before first call of
+   * EmplaceInit, and increment GetSize by 1 each time EmplaceInit succeeds.
+   */
   template <typename... Args>
   void EmplaceInit(size_t idx, Args&&... args) {
     void* field_ptr = AddressOf(idx);
     new (field_ptr) ElemType(std::forward<Args>(args)...);
   }
 
+  /*!
+   * \brief Return the self object for the array.
+   *
+   * \return Pointer to ArrayType.
+   */
   inline ArrayType* Self() const {
-    return static_cast<ArrayType*>(const_cast<InplaceArrayBase*>(this));
+    return reinterpret_cast<ArrayType*>(const_cast<InplaceArrayBase*>(this));
   }
 
   void* AddressOf(size_t idx) const {
@@ -163,6 +221,8 @@ class String : public ObjectRef {
   friend String operator+(const std::string& lhs, const String& rhs);
   friend String operator+(const String& lhs, const char* rhs);
   friend String operator+(const char* lhs, const String& rhs);
+
+  friend cvt::runtime::ObjectEqual;
 };
 
 class StringObj::FromStd : public StringObj {
@@ -305,6 +365,24 @@ inline int String::memcmp(const char* lhs, const char* rhs, size_t lhs_count, si
     return 1;
   } else {
     return 0;
+  }
+}
+
+inline size_t ObjectHash::operator()(const ObjectRef& a) const {
+  if (const auto* str = a.as<StringObj>()) {
+    return String::HashBytes(str->data, str->size);
+  }
+  return ObjectHash()(a);
+}
+
+inline bool ObjectEqual::operator()(const ObjectRef& a, const ObjectRef& b) const {
+  if (a.same_as(b)) {
+    return true;
+  }
+  if (const auto* str_a = a.as<StringObj>()) {
+    if (const auto* str_b = b.as<StringObj>()) {
+      return String::memcmp(str_a->data, str_b->data, str_a->size, str_b->size) == 0;
+    }
   }
 }
 

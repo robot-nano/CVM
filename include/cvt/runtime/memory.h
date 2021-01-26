@@ -75,11 +75,11 @@ class SimpleAllocator : public ObjAllocatorBase<SimpleAllocator> {
     template <typename... Args>
     static ArrayType* New(SimpleAllocator*, size_t num_elems, Args&&... args) {
       size_t unit = sizeof(StorageType);
-      size_t requested_size = num_elems * sizeof(ElemType) * sizeof(ArrayType);
+      size_t requested_size = num_elems * sizeof(ElemType) + sizeof(ArrayType);
       size_t num_storage_slots = (requested_size + unit - 1) / unit;
       StorageType* data = new StorageType[num_storage_slots];
       new (data) ArrayType(std::forward<Args>(args)...);
-      return ObjectPtr<ArrayType>(data);
+      return reinterpret_cast<ArrayType*>(data);
     }
 
     static Object::FDeleter Deleter() {}
@@ -100,9 +100,9 @@ inline ObjectPtr<T> make_object(Args&&... args) {
 }
 
 template <typename ArrayType, typename ElemType, typename... Args>
-inline ObjectPtr<ArrayType> make_object(size_t num_elems, Args&&... args) {
-  return SimpleAllocator().template make_inplace_array<ArrayType, ElemType>(
-      num_elems, std::forward<Args>(args)...);
+inline ObjectPtr<ArrayType> make_inplace_array_object(size_t num_elems, Args&&... args) {
+  return SimpleAllocator().make_inplace_array<ArrayType, ElemType>(num_elems,
+                                                                   std::forward<Args>(args)...);
 }
 
 }  // namespace runtime
