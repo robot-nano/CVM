@@ -6,22 +6,21 @@
 #include <string>
 #include <type_traits>
 
-template <typename T, std::size_t N>
-class static_vector {
-  using StorageType = typename std::aligned_storage<1024, 1024>::type;
+template <typename T>
+class Base {
  public:
-  template <typename... Args>
-  void emplace_back(Args&&... args) {
-    StorageType *data = new StorageType();
-    std::cout << alignof(*data) << std::endl;
+  void bar() {
+    std::cout << "bar" << std::endl;
   }
 };
 
-struct alignas(128) ST {
-  int a;
+template <typename T>
+class Derived : Base<T> {
+ public:
+  void foo() {
+    Base<T>::bar();
+  }
 };
 
 int main() {
-  static_vector<ST, 10> vec;
-  vec.emplace_back(ST());
 }

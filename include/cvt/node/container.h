@@ -27,12 +27,16 @@ using runtime::ObjectRef;
 using runtime::String;
 using runtime::StringObj;
 
+/*! \brief Shared content of all specializations of hash map */
 class MapNode : public Object {
  public:
+  /*! \brief Type of the keys in the hash map */
   using key_type = ObjectRef;
+  /*! \brief Type of the values in the hash map */
   using mapped_type = ObjectRef;
+  /*! \brief Type of value stored in the hash map */
   using KVType = std::pair<ObjectRef, ObjectRef>;
-
+  /*! \brief Iterator class */
   class iterator;
 
   static_assert(std::is_standard_layout<KVType>::value, "KVType is not standard layout");
@@ -42,22 +46,48 @@ class MapNode : public Object {
   static constexpr const char* _type_key = "Map";
   CVT_DECLARE_FINAL_OBJECT_INFO(MapNode, Object);
 
+  /*!
+   * \brief Number of elements in the SmallMapNode
+   * \return The result
+   */
   size_t size() const { return size_; }
-
+  /*!
+   * \brief Count the number of times a key exists in the hash map
+   * \param key The indexing key
+   * \return The result, 0 or 1
+   */
   size_t count(const key_type& key) const;
-
+  /*!
+   * \brief Index value associated with a key, throw exception if the key does not exist
+   * \param key The indexing key
+   * \return The const reference to the value
+   */
   const mapped_type& at(const key_type& key) const;
-
+  /*!
+   * \brief Index value associated with a key, throw exception if the key does not exist
+   * \param key The indexing key
+   * \return The mutable reference to the value
+   */
   mapped_type& at(const key_type& key);
-
+  /*! \brief begin iterator */
   iterator begin() const;
-
+  /*! \brief end iterator */
   iterator end() const;
-
+  /*!
+   * \brief Index value associated with a key
+   * \param key The indexing key
+   * \return The iterator of the entry associated with the key, end iterator if not exists
+   */
   iterator find(const key_type& key) const;
-
+  /*!
+   * \brief Erase the entry associated with the iterator
+   * \param position The iterator
+   */
   void erase(const iterator& position);
-
+  /*!
+   * \brief Erase the entry associated with the key, do nothing if not exists
+   * \param key The indexing key
+   */
   void erase(const key_type& key) { erase(find(key)); }
 
   class iterator {
@@ -67,29 +97,29 @@ class MapNode : public Object {
     using value_type = KVType;
     using pointer = KVType*;
     using reference = KVType&;
-
+    /*! \brief Default constructor */
     iterator() : index(0), self(nullptr) {}
-
+    /*! \brief Compare iterators */
     bool operator==(const iterator& other) const {
       return index == other.index && self == other.self;
     }
-
+    /*! \brief Compare iterators */
     bool operator!=(const iterator& other) const { return !(*this == other); }
-
+    /*! \brief De-reference iterators */
     pointer operator->() const;
-
+    /*! \brief De-Reference iterators */
     reference operator*() const { return *((*this).operator->()); }
-
+    /*! \brief Prefix self increment, e.g. ++iter */
     iterator& operator++();
-
+    /*! \brief Prefix self decrement, e.g. --iter */
     iterator& operator--();
-
+    /*! \brief Suffix self increment */
     iterator operator++(int) {
       iterator copy = *this;
       ++(*this);
       return copy;
     }
-
+    /*! \brief Suffix self decrement */
     iterator operator--(int) {
       iterator copy = *this;
       --(*this);
@@ -97,17 +127,30 @@ class MapNode : public Object {
     }
 
    protected:
+    /*! \brief Constructor by value */
     iterator(uint64_t index, const MapNode* self) : index(index), self(self) {}
-
+    /*! \brief The position on the array */
     uint64_t index;
+    /*! \brief The container it points to */
     const MapNode* self;
+
     friend class DenseMapNode;
     friend class SmallMapNode;
   };  // class iterator
-
+  /*!
+   * \brief Create an empty container
+   * \return The object created
+   */
   static inline ObjectPtr<MapNode> Empty();
 
  protected:
+  /*!
+   * \brief Create the map using contents from the given iterators.
+   * \param first Begin of iterator
+   * \param last End of iterator
+   * \tparam IterType The type of iterator
+   * \return ObjectPtr to the map created
+   */
   template <typename IterType>
   static inline ObjectPtr<Object> CreateFromRange(IterType first, IterType last);
 
@@ -123,6 +166,7 @@ class MapNode : public Object {
   friend class Map;
 };  // class MapNode
 
+/*! \brief A specialization of small-sized hash map */
 class SmallMapNode : public MapNode,
                      public runtime::InplaceArrayBase<SmallMapNode, MapNode::KVType> {
  private:
@@ -165,7 +209,7 @@ class SmallMapNode : public MapNode,
 
   void erase(const iterator& position) { Erase(position.index); }
 
- protected:
+ private:
   /*!
    * \brief Remove a position in SmallMapNode
    * \param index The position to be removed
@@ -201,6 +245,33 @@ class SmallMapNode : public MapNode,
       new (ptr++) KVType(*first);
     }
     return p;
+  }
+
+  static ObjectPtr<SmallMapNode> CopyFrom(SmallMapNode* from) {
+    KVType* first = static_cast<KVType*>(from->AddressOf(0));
+    KVType* last = first + from->size_;
+    return CreateFromRange(from->size_, first, last);
+  }
+
+  static void InsertMaybeReHash(const KVType& kv, ObjectPtr<Object>* map) {
+    SmallMapNode* map_node = static_cast<SmallMapNode*>(map->get());
+    iterator itr = map_node->find(kv.first);
+    if (itr.index < map_node->size_) {
+      itr->second = kv.second;
+      return;;
+    }
+    if (map_node->size_ < map_node->slots_) {
+      KVType* ptr = static_cast<KVType*>(map_node->AddressOf(map_node->size_));
+      new (ptr) KVType(kv);
+      ++map_node->size_;
+      return;
+    }
+    uint64_t next_size = std::max(map_node->slots_ * 2, uint64_t(kInitSize));
+    next_size = std::min(next_size, uint64_t(kMaxSize));
+    ICHECK_GT(next_size, map_node->slots_);
+    ObjectPtr<Object> new_map = CreateFromRange(next_size, map_node->begin(), map_node->end());
+    InsertMaybeReHash(kv, &new_map);
+    *map = std::move(new_map);
   }
 
   friend class MapNode;
@@ -632,6 +703,45 @@ class DenseMapNode : public MapNode {
 // inline MapNode::mapped_type& MapNode::at(const key_type& key) {
 //  //  CVT_DISPATCH_MAP_CONST(this, p, {return p->at(key)})
 //}
+
+template <typename IterType>
+inline ObjectPtr<Object> MapNode::CreateFromRange(IterType first, IterType last) {
+  int64_t _cap = std::distance(first, last);
+  if (_cap < 0)
+    return SmallMapNode::Empty();
+
+  uint64_t cap = static_cast<uint64_t>(_cap);
+  if (cap < SmallMapNode::kMaxSize) {
+    return SmallMapNode::CreateFromRange(cap, first, last);
+  }
+  uint32_t fib_shift;
+  uint64_t n_slots;
+  DenseMapNode::CalcTableSize(cap, &fib_shift, &n_slots);
+  ObjectPtr<Object> obj = DenseMapNode::Empty(fib_shift, n_slots);
+  for (; first != last; ++first) {
+    KVType kv(*first);
+    DenseMapNode::InsertMaybeReHash(kv, &obj);
+  }
+  return obj;
+}
+
+inline void MapNode::InsertMaybeReHash(const KVType& kv, ObjectPtr<Object>* map) {
+  constexpr uint64_t kSmallMapMaxSize = SmallMapNode::kMaxSize;
+  MapNode* base = static_cast<MapNode*>(map->get());
+  if (base->slots_ < kSmallMapMaxSize) {
+    SmallMapNode::InsertMaybeReHash(kv, map);
+  } else if (base->slots_ == kSmallMapMaxSize) {
+    if (base->size_ < base->slots_) {
+      SmallMapNode::InsertMaybeReHash(kv, map);
+    } else {
+      ObjectPtr<Object> new_map = MapNode::CreateFromRange(base->begin(), base->end());
+      DenseMapNode::InsertMaybeReHash(kv, &new_map);
+      *map = std::move(new_map);
+    }
+  } else {
+    DenseMapNode::InsertMaybeReHash(kv, map);
+  }
+}
 
 }  // namespace cvt
 
