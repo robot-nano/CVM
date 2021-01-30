@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?><diagram program="umlet" version="13.3">
+  <zoom_level>10</zoom_level>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>30</x>
+      <y>110</y>
+      <w>560</w>
+      <h>570</h>
+    </coordinates>
+    <panel_attributes>Object
+--
++ FDeleter: void(*)(Object*)
+_+ _type_key : constexpr const char*_
+_+ _type_final : constexpr bool_
+_+ _type_child_slots : constexpr uint32_t_
+_+ _type_child_slots_can_flow : constexpr bool_
+_+ _type_has_method_visit_attrs : constexpr bool_
+_+ _type_has_method_shash_reduce : constexpr bool_
+_+ _type_index : constexpr uint32_t = TypeIndex::KDynamic_
+# type_index_ : uint32_t
+# ref_counter_ = RefCounterType
+# deleter_ : FDeleter = nullptr
+--
++ type_index() const : uint32_t
++ GetTypeKey() const : string
++ GetTypeKeyHash() const : size_t
+template &lt;typename TargetType&gt;
++ IsInstance() const : inline bool
+_+ TypeIndex2Key(tindex : uint32_t) : string_
+_+ TypeIndex2KeyHash(tindex : uint32_t) : size_t_
+_+ TypeKey2Index(key : const string) : uint32_t_
+_+ _GetOrAllocRuntimeTypeIndex() : uint32_t_
+_+ RuntimeTypeIndex() : uint32_t_
+Object() = default
+Object(other : const Object&amp;)
+Object(other : Object&amp;&amp;)
++ operator=(other : const Object&amp;) : Object&amp;
++ operator=(other : Object&amp;&amp;) : Object&amp;
+_# GetOrAllocRuntimeTypeIndex(key : const string&amp;, static_tindex : uint32_t, _
+_                    parent_tindex : uint32_t, type_child_slots : uint32_t,_
+_                    type_child_slots_can_over_flow : bool) : uint32_t_
+# IncRef() : inline void
+# DecRef() : inline void
+- use_count() const : inline int
+- DerivedFrom(parent_tindex : uint32_t) const : bool
+
+</panel_attributes>
+    <additional_attributes/>
+  </element>
+</diagram>
