@@ -309,7 +309,14 @@ class ObjectRef {
 template <typename BaseType, typename ObjectType>
 inline ObjectPtr<BaseType> GetObjectPtr(ObjectType* ptr);
 
-struct ObjectPtrHash {};
+struct ObjectPtrHash {
+  size_t operator()(const ObjectRef& a) const { return operator()(a.data_); }
+
+  template <typename T>
+  size_t operator()(const ObjectPtr<T>& a) const {
+    return std::hash<Object*>()(a.get());
+  }
+};
 
 /*!
  * \brief helper macro to declare a base object type that can be inherited.
@@ -320,7 +327,7 @@ struct ObjectPtrHash {};
   static_assert(!ParentType::_type_final, "ParentObj marked as final");                         \
   static uint32_t RuntimeTypeIndex() {                                                          \
     static_assert(TypeName::_type_child_slots == 0 || ParentType::_type_child_slots == 0 ||     \
-                      TypeName::_type_child_slots < ParentType::_type_child_slots_can_overflow, \
+                      TypeName::_type_child_slots < ParentType::_type_child_slots, \
                   "Need to set _type_child_slots when parent specifices it.");                  \
     if (TypeName::_type_index != ::cvt::runtime::TypeIndex::kDynamic) {                         \
       return TypeName::_type_index;                                                             \
@@ -397,7 +404,7 @@ struct ObjectPtrHash {};
  */
 #define CVT_DEFINE_NOTNULLABLE_OBJECT_REF_METHODS(TypeName, ParentType, ObjectName)            \
   explicit TypeName(::cvt::runtime::ObjectPtr<::cvt::runtime::Object> n) : ParentType(n) {}    \
-  CVT_DEFINE_DEFAULT_COPY_MOVE_AND_ASSIGN(TypeName);                                           \
+  CVT_DEFINE_DEFAULT_COPY_MOVE_AND_ASSIGN(TypeName)                                           \
   const ObjectName* operator->() const { return static_cast<const ObjectName*>(data_.get()); } \
   const ObjectName* get() const { return operator->(); }                                       \
   static constexpr bool _type_is_nullable = false;                                             \

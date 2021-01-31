@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?><diagram program="umlet" version="13.3">
-  <zoom_level>10</zoom_level>
+  <zoom_level>8</zoom_level>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>30</x>
-      <y>110</y>
-      <w>560</w>
-      <h>570</h>
+      <x>816</x>
+      <y>88</y>
+      <w>440</w>
+      <h>448</h>
     </coordinates>
     <panel_attributes>Object
 --
@@ -25,8 +25,7 @@ _+ _type_index : constexpr uint32_t = TypeIndex::KDynamic_
 + type_index() const : uint32_t
 + GetTypeKey() const : string
 + GetTypeKeyHash() const : size_t
-template &lt;typename TargetType&gt;
-+ IsInstance() const : inline bool
++ &lt;TargetType&gt; IsInstance() const : inline bool
 _+ TypeIndex2Key(tindex : uint32_t) : string_
 _+ TypeIndex2KeyHash(tindex : uint32_t) : size_t_
 _+ TypeKey2Index(key : const string) : uint32_t_
@@ -45,6 +44,416 @@ _                    type_child_slots_can_over_flow : bool) : uint32_t_
 - use_count() const : inline int
 - DerivedFrom(parent_tindex : uint32_t) const : bool
 
+</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1312</x>
+      <y>56</y>
+      <w>400</w>
+      <h>344</h>
+    </coordinates>
+    <panel_attributes>template=T
+ObjectPtr
+--
+- data_ : Object*
+--
++ ObjectPtr()
++ ObjectPtr(nullptr_t)
++ ObjectPtr(other: const ObjectPtr&lt;T&gt;&amp;)
++ &lt;U&gt; ObjectPtr(other : const ObjectPtr&lt;U&gt;&amp;)
++ OjbectPtr(other : ObjectPtr&lt;T&gt;&amp;&amp;)
++ &lt;Y&gt; ObjectPtr(other : ObjectPtr&lt;Y&gt;&amp;&amp;)
+~ObjectPtr()
++ swap(other : ObjectPtr&lt;T&gt;&amp;) : void
++ get() const : T*
++ operator-&gt;() const : T*
++ operator*() const : T&amp;
++ operator=(other : const ObjectPtr&lt;T&gt;&amp;) : ObjectPtr&lt;T&gt;&amp;
++ reset() : void
++ use_count() const : int
++ unique() const : bool
++ operator==(other : const ObjectPtr&lt;T&gt;&amp;) const : bool
++ operator!=(other : const ObjectPtr&lt;T&gt;&amp;) const : bool
++ opeartor==(null : nullptr_t) const : bool
++ operator!=(null : nullptr_t) const : bool
+- ObjectPtr(data : Object*)
+_- MoveFromRValueRefArg(ref : Object**) : ObjectPtr&lt;T&gt;_</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1768</x>
+      <y>48</y>
+      <w>448</w>
+      <h>256</h>
+    </coordinates>
+    <panel_attributes>ObjectRef
+--
+# data_ : ObjectPtr&lt;Object&gt;
+_+ _type_is_nullable : constexpr bool = true_
+--
++ ObjectRef(data : ObjectPtr&lt;Object&gt;)
++ same_as(other : const ObjectRef&amp;) const : bool
++ operator==(other : const ObjectRef&amp;) const : bool
++ operator!=(other : const ObjectRef&amp;) const : bool
++ operator&lt;(other : const ObjectRef&amp;) const : bool
++ defined() const : bool
++ get() const : const Object*
++ operator-&gt;() const : const Object*
++ unique() const : bool
++ use_count() const : int
++ &lt;ObjectType&gt; as() const : inline const ObjectType*
+- get_mutable() const : Object*
+_- &lt;T&gt; DowncastNoCheck(ref : ObjectRef) : T _
+_- FFIClearAfterMove(ref : ObjectRef*) : void_
+_- &lt;ObjectType&gt; GetDataPtr(ref : const ObjectRef&amp;) : ObjectPtr&lt;ObjectType&gt;_</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1248</x>
+      <y>88</y>
+      <w>80</w>
+      <h>24</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;-</panel_attributes>
+    <additional_attributes>10.0;10.0;80.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1688</x>
+      <y>64</y>
+      <w>96</w>
+      <h>24</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;-</panel_attributes>
+    <additional_attributes>10.0;10.0;100.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1224</x>
+      <y>0</y>
+      <w>560</w>
+      <h>104</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;.</panel_attributes>
+    <additional_attributes>10.0;110.0;10.0;10.0;640.0;10.0;640.0;80.0;680.0;80.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>240</x>
+      <y>720</y>
+      <w>408</w>
+      <h>192</h>
+    </coordinates>
+    <panel_attributes>StringObj
+--
++ data : const char*
++ size : uint64_t
+
+_+ _type_index : constexpr const uint32_t = TypeIndex::kRuntimeString_
+_+ _type_key : constexpr const char*_
+_+ _type_final : const constexpr bool = true_
+_+ _type_child_slots : const constexpr int = 0_
+
+class FromStd
+--
+_+ RuntimeTypeIndex() : uint32_t_
+_+ _GetOrAllocRuntimeTypeIndex() : uint32_t_</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>432</x>
+      <y>528</y>
+      <w>584</w>
+      <h>208</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;-</panel_attributes>
+    <additional_attributes>710.0;10.0;710.0;150.0;10.0;150.0;10.0;240.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>0</x>
+      <y>720</y>
+      <w>184</w>
+      <h>72</h>
+    </coordinates>
+    <panel_attributes>FromStd
+--
+- data_container : std::string
+--
+FromStd(std::string other) </panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>176</x>
+      <y>720</y>
+      <w>80</w>
+      <h>24</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;-</panel_attributes>
+    <additional_attributes>80.0;10.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1744</x>
+      <y>432</y>
+      <w>496</w>
+      <h>416</h>
+    </coordinates>
+    <panel_attributes>String
+--
+# macro
+_+ _type_is_nullable : constexpr bool = false_
+--
++ String()
++ String(other : std;:stirng)
++ String(other : const char*)
++ operator=(other : std::string) : inline String&amp;
++ operator=(other : const char*) : inline String&amp;
++ compare(other : const String&amp;) const : int
++ compare(other : const std::string&amp;) const : int
++ compare(other : const char*) const : int
++ c_str() const : const char*
++ size() const : size_t
++ length() const : size_t
++ empty() const : bool
++ at(pos : size_t) const : char
++ data() const : const char*
++ operator std::string() const
+_+ HashBytes(data : const char* data, size : size_t) : size_t_
+## macro ##
++ String(n : ObjectPtr&lt;Object&gt;)
++ String(other : const String&amp;) = default
++ String(other : String&amp;&amp;) = default
++ operator=(other : const String&amp;) : String&amp; = default
++ opeartor=(other : String&amp;&amp;) : String&amp; = default
++ operator-&gt;() const : const StringObj*
++ get() const : const StringObj*
+## macro ##
+_- memcmp(lhs : const char*, rhs : const char*, lhs_count: size_t, rhs_count: size_t) : int_
+_- Concat(lhs : const char*, lhs_size : size_t, rhs : const char*, rhs_size : size_t) : String_
+</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1984</x>
+      <y>296</y>
+      <w>24</w>
+      <h>152</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;-</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;170.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>744</x>
+      <y>720</y>
+      <w>504</w>
+      <h>320</h>
+    </coordinates>
+    <panel_attributes>MapNode
+--
+_+ _type_index : constexpr const uint32_t = TypeIndex::KRuntimeMap_
+_+ _type_key : constexpr const char*_
+_+ _type_final : const constexpr bool = true_
+_+ _type_child_slots : const constexpr int = 0_
+# slots_ : uint64_t
+# size_ : uint64_t
+--
+_+ RuntimeTypeIndex() : uint32_t_
+_+ _GetOrAllocRuntimeTypeIndex() : uint32_t_
+
++ size() const : size_t
++ count(key : const key_type&amp;) const : size_t
++ at(key : const key_type&amp;) const : const mapped_type&amp;
++ at(key : const key_type&amp;) : mapped_tye&amp;
++ begin() const : iterator
++ end() const : iterator
++ find(key : const key_type&amp;) const : iterator
++ erase(position : const iterator&amp;) : void
++ erase(key : const key_type&amp;) : void
+_+ Empty() : inline ObjectPtr&lt;MapNode&gt;_
+_# &lt;IterType&gt; CreateFromRange(first IterType, last IterType) : inline ObjectPtr&lt;Object&gt;_
+_# InsertMaybeReHash(kv : const KVType&amp;, map : ObjectPtr&lt;Object&gt;*) : inline void_
+_# CopyFrom(from : MapNode*) : inline ObjectPtr&lt;MapNode&gt;_</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>176</x>
+      <y>752</y>
+      <w>80</w>
+      <h>32</h>
+    </coordinates>
+    <panel_attributes>lt=-(+)
+</panel_attributes>
+    <additional_attributes>10.0;20.0;80.0;20.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>800</x>
+      <y>1088</y>
+      <w>296</w>
+      <h>192</h>
+    </coordinates>
+    <panel_attributes>ierator
+--
+# index : uint64_t
+# self : const MapNode*
+--
++ iterator()
++ operator==(other : const iterator&amp;) const : bool
++ operator!=(other : const iterator&amp;) const : bool
++ operator-&gt;() const : pointer
++ operator*() const : reference
++ operator++() const : iterator&amp;	&lt;&lt;前缀自增&gt;&gt;
++ operator--() const : iterator&amp; &lt;&lt;前缀自减&gt;&gt;
++ operator++(int) : iterator &lt;&lt;后缀自增&gt;&gt;
++ operator--(int) : iterator &lt;&lt;后缀自减&gt;&gt;
+# ierator(index : uint64_t, self : const MapNode*)</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>936</x>
+      <y>1032</y>
+      <w>24</w>
+      <h>72</h>
+    </coordinates>
+    <panel_attributes>lt=-(+)
+</panel_attributes>
+    <additional_attributes>10.0;70.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>736</x>
+      <y>1400</y>
+      <w>592</w>
+      <h>232</h>
+    </coordinates>
+    <panel_attributes>SmallMapNode
+--
+_- kInitSize : constexpr uint64_t = 2_
+_- kMaxSize : constexpr uint64_t = 4_
+--
++ ~SmallMapNode() = default
++ count(key : const key_type&amp;) const : size_t
++ at(key : const key_type&amp;) const : const mapped_type&amp;
++ at(key : const key_type&amp;) : mapped_type&amp;
++ begin() const : iterator
++ end() const : iterator
++ find(key : const key_type&amp;) const : iterator
++ erase(position : const iterator&amp;) : void
+- Erase(index : const uint64_t) : void
+_- Empty(n : uint64_t) : ObjectPtr&lt;SmallMapNode&gt;_
+_- &lt;IterType&gt; CreateFromRange(n : uint64_t, first : IterType, last : IterType) : ObjectPtr&lt;SmallMapNode&gt;_
+_- CopyFrom(from : SmallMapNode*) : ObjectPtr&lt;SmallMapNode&gt;_
+_- InsertMaybeReHash(kv: const KVType&amp;, map: ObjectPtr&lt;Object&gt;*) : void_</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>992</x>
+      <y>528</y>
+      <w>24</w>
+      <h>208</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;-</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;240.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1112</x>
+      <y>1032</y>
+      <w>24</w>
+      <h>384</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;-</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;460.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>744</x>
+      <y>1672</y>
+      <w>496</w>
+      <h>448</h>
+    </coordinates>
+    <panel_attributes>DenseMapNode
+--
+_- kBlockCap : constexpr int = 16_
+_- kMaxLoadFactor : constexpr double = 0.99_
+_- kEmptySlot : constexpr uint8_t = uint8_t(0b11111111)_
+_- kProtected : constexpr uint8_t = uint8_t(0b11111110)_
+_- kNumJumpDists = constexpr int = 126_
+# fib_shift_ : uint32_t
+# data_ : Block*
+_# kNextProbeLocation[kNumJumpDists] : constexpr uint64_t_
+--
++ ~DenseMapNode()
++ count(key : const key_type&amp;) const : size_t
++ at(key : const key_type&amp;) const : const mapped_type&amp;
++ at(key : const key_type&amp;) : mapped_type&amp;
++ find(key : const key_type&amp;) const : iterator
++ erase(position : const ierator&amp;) : void
++ begin() const : iterator
++ end() const : iterator
+- Search(key : const key_type&amp;) const : ListNode
+- At(key : const key_type&amp;) const : mapped_type&amp;
+- TryInsert(key : const key_type&amp;, result : ListNode*) : bool
+- TrySpareListHead(target : ListNode, key : const type_key&amp;, result : ListNode*) : bool
+- Erase(iter : const ListNode&amp;) : void
+- Reset() : void
+- ReleaseMemory() : void
+_- Empty(fib_shift : uint32_t, n_slots : uint64_t) : ObjectPtr&lt;DenseMapNode&gt;_
+_- CopyFrom(from : DenseMapNode*) : ObjectPtr&lt;DenseMapNode&gt;_
+_- InsertMaybeHash(kv : const KVType&amp;, map : ObjectPtr&lt;Object&gt;*) : void_
+_- IsFull() const : bool_
+- DecItr(index : uint64_t) const : uint64_t
+- DeRefItr(index : uint64_t) const : KVType*
+- IndexFromHash(hash_value : uint64_t) const : ListNode
+- GetListHead(hash_value : uint64_t) const : ListNode
+_- CalcNumBlocks(n_slots_m1 : uint64_t) : uint64_t_
+_- CalcTableSize(cap : uint64_t, fib_shift : uint32_t*, n_slots : uint64_t*) : void_
+_- FibHash(hash_value : uint64_t, fib_shift : uint32_t) : uint64_t_
+__</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>744</x>
+      <y>2160</y>
+      <w>360</w>
+      <h>48</h>
+    </coordinates>
+    <panel_attributes>Block
+--
+bytes[kBlockCap + kBlockCap * sizeof(KVType)] : uint8_t
 </panel_attributes>
     <additional_attributes/>
   </element>

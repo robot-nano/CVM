@@ -82,7 +82,7 @@ class SimpleAllocator : public ObjAllocatorBase<SimpleAllocator> {
       return reinterpret_cast<ArrayType*>(data);
     }
 
-    static Object::FDeleter Deleter() {}
+    static Object::FDeleter Deleter() { return Deleter_; }
 
    private:
     static void Deleter_(Object* objptr) {

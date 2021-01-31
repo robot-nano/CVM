@@ -258,7 +258,7 @@ class SmallMapNode : public MapNode,
     iterator itr = map_node->find(kv.first);
     if (itr.index < map_node->size_) {
       itr->second = kv.second;
-      return;;
+      return;
     }
     if (map_node->size_ < map_node->slots_) {
       KVType* ptr = static_cast<KVType*>(map_node->AddressOf(map_node->size_));
@@ -273,6 +273,8 @@ class SmallMapNode : public MapNode,
     InsertMaybeReHash(kv, &new_map);
     *map = std::move(new_map);
   }
+
+  uint64_t GetSize() const { return size_; }
 
   friend class MapNode;
   friend class DenseMapNode;
@@ -704,11 +706,20 @@ class DenseMapNode : public MapNode {
 //  //  CVT_DISPATCH_MAP_CONST(this, p, {return p->at(key)})
 //}
 
+inline ObjectPtr<MapNode> MapNode::Empty() { return SmallMapNode::Empty(); }
+
+inline ObjectPtr<MapNode> MapNode::CopyFrom(MapNode* from) {
+  if (from->slots_ <= SmallMapNode::kMaxSize) {
+    return SmallMapNode::CopyFrom(static_cast<SmallMapNode*>(from));
+  } else {
+    return DenseMapNode::CopyFrom(static_cast<DenseMapNode*>(from));
+  }
+}
+
 template <typename IterType>
 inline ObjectPtr<Object> MapNode::CreateFromRange(IterType first, IterType last) {
   int64_t _cap = std::distance(first, last);
-  if (_cap < 0)
-    return SmallMapNode::Empty();
+  if (_cap < 0) return SmallMapNode::Empty();
 
   uint64_t cap = static_cast<uint64_t>(_cap);
   if (cap < SmallMapNode::kMaxSize) {

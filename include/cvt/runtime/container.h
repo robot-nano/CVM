@@ -83,13 +83,14 @@ class InplaceArrayBase {
 
   ~InplaceArrayBase() {
     if (!(std::is_standard_layout<ElemType>::value && std::is_trivial<ElemType>::value)) {
-//      size_t size = Self()->GetSize();
-//      for (size_t i = 0; i < size; ++i) {
-//        ElemType* fp = reinterpret_cast<ElemType*>(AddressOf(i));
-//        fp->ElemType::~ElemType();
-//      }
+      size_t size = Self()->GetSize();
+      for (size_t i = 0; i < size; ++i) {
+        ElemType* fp = reinterpret_cast<ElemType*>(AddressOf(i));
+        fp->ElemType::~ElemType();
+      }
     }
   }
+
  protected:
   /*!
    * \brief Construct a value in place with the arguments
@@ -113,7 +114,7 @@ class InplaceArrayBase {
    * \return Pointer to ArrayType.
    */
   inline ArrayType* Self() const {
-    return reinterpret_cast<ArrayType*>(const_cast<InplaceArrayBase*>(this));
+    return static_cast<ArrayType*>(const_cast<InplaceArrayBase*>(this));
   }
 
   void* AddressOf(size_t idx) const {
@@ -135,7 +136,7 @@ class StringObj : public Object {
 
   uint64_t size;
 
-  static constexpr const uint32_t _type_index = TypeIndex::kDynamic;
+  static constexpr const uint32_t _type_index = TypeIndex::kRuntimeString;
   static constexpr const char* _type_key = "runtime.String";
   CVT_DECLARE_FINAL_OBJECT_INFO(StringObj, Object);
 
@@ -162,14 +163,16 @@ class String : public ObjectRef {
   inline String& operator=(const char* other);
 
   int compare(const String& other) const {
-    return memcmp(data(), other.data(), size(), other.size());
+    return memncmp(data(), other.data(), size(), other.size());
   }
 
   int compare(const std::string& other) const {
-    return memcmp(data(), other.data(), size(), other.size());
+    return memncmp(data(), other.data(), size(), other.size());
   }
 
-  int compare(const char* other) const { return memcmp(data(), other, size(), std::strlen(other)); }
+  int compare(const char* other) const {
+    return memncmp(data(), other, size(), std::strlen(other));
+  }
 
   const char* c_str() const { return get()->data; }
 
@@ -207,7 +210,7 @@ class String : public ObjectRef {
   CVT_DEFINE_NOTNULLABLE_OBJECT_REF_METHODS(String, ObjectRef, StringObj);
 
  private:
-  static int memcmp(const char* lhs, const char* rhs, size_t lhs_count, size_t rhs_count);
+  static int memncmp(const char* lhs, const char* rhs, size_t lhs_count, size_t rhs_count);
 
   static String Concat(const char* lhs, size_t lhs_size, const char* rhs, size_t rhs_size) {
     std::string ret(lhs, lhs_size);
@@ -227,7 +230,7 @@ class String : public ObjectRef {
 
 class StringObj::FromStd : public StringObj {
  public:
-  explicit FromStd(std::string other) : data_container(std::move(other)) {}
+  explicit FromStd(std::string other) : data_container{other} {}
 
  private:
   /*! \brief Container that holds the memory. */
@@ -244,7 +247,7 @@ inline String::String(std::string other) {
 }
 
 inline String& String::operator=(std::string other) {
-  String replace(std::move(other));
+  String replace{std::move(other)};
   data_.swap(replace.data_);
   return *this;
 }
@@ -352,7 +355,7 @@ inline std::ostream& operator<<(std::ostream& out, const String& input) {
   return out;
 }
 
-inline int String::memcmp(const char* lhs, const char* rhs, size_t lhs_count, size_t rhs_count) {
+inline int String::memncmp(const char* lhs, const char* rhs, size_t lhs_count, size_t rhs_count) {
   if (rhs == lhs && lhs_count == rhs_count) return 0;
 
   for (size_t i = 0; (i < lhs_count) && (i < rhs_count); ++i) {
@@ -372,7 +375,7 @@ inline size_t ObjectHash::operator()(const ObjectRef& a) const {
   if (const auto* str = a.as<StringObj>()) {
     return String::HashBytes(str->data, str->size);
   }
-  return ObjectHash()(a);
+  return ObjectPtrHash()(a);
 }
 
 inline bool ObjectEqual::operator()(const ObjectRef& a, const ObjectRef& b) const {
@@ -381,9 +384,10 @@ inline bool ObjectEqual::operator()(const ObjectRef& a, const ObjectRef& b) cons
   }
   if (const auto* str_a = a.as<StringObj>()) {
     if (const auto* str_b = b.as<StringObj>()) {
-      return String::memcmp(str_a->data, str_b->data, str_a->size, str_b->size) == 0;
+      return String::memncmp(str_a->data, str_b->data, str_a->size, str_b->size) == 0;
     }
   }
+  return false;
 }
 
 }  // namespace runtime

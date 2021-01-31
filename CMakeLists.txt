@@ -16,14 +16,14 @@ set_property(TARGET cvt APPEND PROPERTY LINK_OPTIONS "${CVT_VISIBILITY_FLAGS}")
 
 set(CVT_TEST_LIBRARY_NAME cvt)
 
-add_executable(temp temp.cpp)
-target_link_libraries(temp cvt)
-
 # Tests
 set(TEST_EXECS "")
 file(GLOB TEST_SRCS tests/cpp/*.cc)
 find_path(GTEST_INCLUDE_DIR gtest/gtest.h)
 find_library(GTEST_LIB gtest "$ENV{GTEST_LIB}")
+
+add_executable(temp temp.cpp)
+target_link_libraries(temp cvt ${GTEST_LIB} pthread)
 
 # Create the `cpptest` target if we can find GTest.  If not, we create dummy
 # targets that give the user an informative error message.
