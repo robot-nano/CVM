@@ -311,7 +311,7 @@ _# CopyFrom(from : MapNode*) : inline ObjectPtr&lt;MapNode&gt;_</panel_attribute
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>800</x>
+      <x>616</x>
       <y>1088</y>
       <w>296</w>
       <h>192</h>
@@ -336,7 +336,7 @@ _# CopyFrom(from : MapNode*) : inline ObjectPtr&lt;MapNode&gt;_</panel_attribute
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>936</x>
+      <x>752</x>
       <y>1032</y>
       <w>24</w>
       <h>72</h>
@@ -348,9 +348,9 @@ _# CopyFrom(from : MapNode*) : inline ObjectPtr&lt;MapNode&gt;_</panel_attribute
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>736</x>
-      <y>1400</y>
-      <w>592</w>
+      <x>312</x>
+      <y>1392</y>
+      <w>608</w>
       <h>232</h>
     </coordinates>
     <panel_attributes>SmallMapNode
@@ -387,21 +387,21 @@ _- InsertMaybeReHash(kv: const KVType&amp;, map: ObjectPtr&lt;Object&gt;*) : voi
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>1112</x>
+      <x>680</x>
       <y>1032</y>
-      <w>24</w>
-      <h>384</h>
+      <w>280</w>
+      <h>376</h>
     </coordinates>
     <panel_attributes>lt=&lt;&lt;-</panel_attributes>
-    <additional_attributes>10.0;10.0;10.0;460.0</additional_attributes>
+    <additional_attributes>330.0;10.0;330.0;360.0;10.0;360.0;10.0;450.0</additional_attributes>
   </element>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>744</x>
-      <y>1672</y>
+      <x>960</x>
+      <y>1392</y>
       <w>496</w>
-      <h>448</h>
+      <h>472</h>
     </coordinates>
     <panel_attributes>DenseMapNode
 --
@@ -446,15 +446,118 @@ __</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>744</x>
-      <y>2160</y>
-      <w>360</w>
-      <h>48</h>
+      <x>832</x>
+      <y>1928</y>
+      <w>336</w>
+      <h>56</h>
     </coordinates>
-    <panel_attributes>Block
+    <panel_attributes>&lt;&lt;struct&gt;&gt;
+Block
 --
 bytes[kBlockCap + kBlockCap * sizeof(KVType)] : uint8_t
 </panel_attributes>
     <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1000</x>
+      <y>1856</y>
+      <w>24</w>
+      <h>88</h>
+    </coordinates>
+    <panel_attributes>lt=-(+)
+</panel_attributes>
+    <additional_attributes>10.0;90.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1232</x>
+      <y>1928</y>
+      <w>528</w>
+      <h>328</h>
+    </coordinates>
+    <panel_attributes>&lt;&lt;struct&gt;&gt;
+ListNode
+--
+index : uint64_t
+block : Block*
+--
+ListNode()
+ListNode(index : uint64_t, self : const DenseMapNode*)
+Meta() const : uint8_t&amp;
+Data() const : KVType&amp;
+Key() const : key_type&amp;
+Val() const : mapped_type&amp;
+IsHead() const : bool
+IsNode() const : bool
+IsEmpty() const : bool
+IsProtected() const : bool
+SetEmpty() const : void
+SetProtected() const : void 
+SetJump(jump : uint8_t) : void 
+NewHead(v : KVType) const : void
+NewTail(v : KVType) const : void
+HasNext() const : bool
+MoveToNext(self : const DenseMapNode*, meta : uint8_t) : bool
+MoveToNext(self : const DenseMapNode*) : bool
+FindPrev(self : const DenseMapNode*) const : ListNode
+GetNextEmpty(self : const DenseMapNode*, jump : uint8_t*, result : ListNode*) const : bool</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1352</x>
+      <y>1856</y>
+      <w>24</w>
+      <h>88</h>
+    </coordinates>
+    <panel_attributes>lt=-(+)
+</panel_attributes>
+    <additional_attributes>10.0;90.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>936</x>
+      <y>1032</y>
+      <w>304</w>
+      <h>376</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;-</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;360.0;360.0;360.0;360.0;450.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>136</x>
+      <y>1088</y>
+      <w>416</w>
+      <h>136</h>
+    </coordinates>
+    <panel_attributes>template=ArrayType,ElemType
+InplaceArrayBase
+--
+--
++ operator[](idx : size_t) const : const ElemType&amp;
++ operator[](idx : size_t) const : ElemType&amp;
++ ~InplaceArrayBase()
+# &lt;...Args&gt; EmplaceInit(idx : size_t, args : Args&amp;&amp;...) : void
+# self() const : inline ArrayType
+# AddressOf(idx : size_t) const : void*</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>392</x>
+      <y>1216</y>
+      <w>24</w>
+      <h>192</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;-</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;220.0</additional_attributes>
   </element>
 </diagram>
