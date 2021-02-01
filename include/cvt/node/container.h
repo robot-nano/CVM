@@ -281,6 +281,62 @@ class SmallMapNode : public MapNode,
   friend class runtime::InplaceArrayBase<SmallMapNode, MapNode::KVType>;
 };  // class SmallMapNode
 
+/*!
+ * \brief A specialization of hash map that implements the idea of array-based hash map.
+ * Another reference implementation can be found [1].
+ *
+ * A. Overview
+ *
+ * DenseMapNode did several improvements over traditional separate chaining hash,
+ * in terms of cache locality, memory footprints and data organization.
+ *
+ * A1. Implicit linked list. For better cache locality, instead of using linked list
+ * explicitly for each bucket, we store list data into a single array that spans contiguously
+ * in memory, and then carefully design access patterns to make sure most of them fall into
+ * a single cache line.
+ *
+ * A2. 1-byte metadata. There is only 1 byte overhead for each slot in the array to indexing and
+ * traversal. This can be divided in 3 parts.
+ * 1) Reserved code: (0b11111111)_2 indicates a slot is empty; (0b11111110)_2 indicates protected,
+ * which means the slot is empty buyt not allowed to be written.
+ * 2) If not empty or protected, the highest bit is used to indicate whether data in the slot is
+ * head of a linked list.
+ * 3) The rest 7 bits are used as the "next pointer" (i.e. pointer to the next element). On 64-bit
+ * architecture, an ordinary pointer can take up to 8 bytes, which is not acceptable overhead when
+ * dealing with 16-byte ObjectRef pairs. Based on a commonly noticed fact that the lists are
+ * relatively short (length <= 3) in hash maps, we follow [1]'s idea that only allows the pointer to
+ * be one of the 126 possible value, i.e. if the next element of i-th slot is (i + x)-th element,
+ * then x must be one of the 126 pre-defined values.
+ *
+ *  A3. Data blocking. We organize the array in the way that every 16 elements forms a data block.
+ *  The 16-byte metadata of those 16 elements are stored together, followed by the real data, i.e.
+ *  16 key-value pairs.
+ *
+ *  B. Implementation details
+ *
+ *  B1. Power-of-2 table size and Fibonacci Hashing. We use power-of-two as table size to avoid
+ *  module for more efficient arithmetics. To make the hash-to-slot mapping distribute more evenly,
+ *  we use the Fibonacci Hashing [2] trick.
+ *
+ *  B2. Traverse a linked list in the array.
+ *  1) List head. Assume Fibonacci Hashing maps a given key to slot i, if metadata at slot i
+ *  indicates the it is list head, then we found the head; otherwise the list is empty. No probing
+ *  is done in this procedure. 2) Next element. To find the next element of a non-empty slot i, we
+ *  look at the last 7 bits of the metadata at slot i. If they are all zeros, then it is the end of
+ *  list; otherwise, we know that the next element is (i + candidates[the-last-7-bits]).
+ *
+ *  B3. InsertMaybeReHash an element. Following B2, we first traverse the linked list to see if this
+ *  element is in the linked list, and if not, we put is at the end by probing the next empty
+ *  position in one of the 126 candidate positions. If the linked list does not even exist, but the
+ *  slot for list head has been occupied by another linked list, we should find this intruder
+ * another place.
+ *
+ *  B4. Quadratic probing with triangle numbers. In open address hashing, it is provable that
+ * probing with triangle numbers can traverse power-of-2-sized table [3]. In our algorithm, we
+ * follow the suggestion in [1] that also use triangle numbers for "next pointer" as well as sparing
+ * for list head.
+ *
+ */
 class DenseMapNode : public MapNode {
  private:
   static constexpr int kBlockCap = 16;
@@ -298,21 +354,39 @@ class DenseMapNode : public MapNode {
  public:
   using MapNode::iterator;
 
-  ~DenseMapNode() {}
+  ~DenseMapNode() { this->Reset(); }
 
   size_t count(const key_type& key) const { return !Search(key).IsNone(); }
 
-  const mapped_type& at(const key_type& key) const {}
+  const mapped_type& at(const key_type& key) const { return At(key); }
 
-  mapped_type& at(const key_type& key) {}
+  mapped_type& at(const key_type& key) { return At(key); }
 
-  iterator find(const key_type& key) const {}
+  iterator find(const key_type& key) const {
+    ListNode node = Search(key);
+    return node.IsNone() ? end() : iterator(node.index, this);
+  }
 
-  void earse(const iterator& position) {}
+  void earse(const iterator& position) {
+    uint64_t index = position.index;
+    if (position.self != nullptr && index <= this->slots_) {
+      Erase(ListNode(index, this));
+    }
+  }
 
-  iterator begin() const {}
+  iterator begin() const {
+    if (slots_ == 0) {
+      return iterator(0, this);
+    }
+    for (uint64_t index = 0; index <= slots_; ++index) {
+      if (!ListNode(index, this).IsEmpty()) {
+        return iterator(index, this);
+      }
+    }
+    return iterator(slots_ + 1, this);
+  }
 
-  iterator end() const {}
+  iterator end() const { return slots_ == 0 ? iterator(0, this) : iterator(slots_ + 1, this); }
 
  private:
   ListNode Search(const key_type& key) const {
@@ -468,11 +542,11 @@ class DenseMapNode : public MapNode {
     p->fib_shift_ = from->fib_shift_;
     for (uint64_t bi = 0; bi < n_blocks; ++bi) {
       uint8_t* meta_ptr_from = from->data_[bi].bytes;
-      KVType* data_ptr_from = reinterpret_cast<KVType*>(from->data_ + kBlockCap);
+      KVType* data_ptr_from = reinterpret_cast<KVType*>(from->data_[bi].bytes + kBlockCap);
       uint8_t* meta_ptr_to = p->data_[bi].bytes;
       KVType* data_ptr_to = reinterpret_cast<KVType*>(p->data_[bi].bytes + kBlockCap);
       for (int j = 0; j < kBlockCap;
-           ++j, ++meta_ptr_from, ++data_ptr_from, ++meta_ptr_from, ++data_ptr_from) {
+           ++j, ++meta_ptr_from, ++data_ptr_from, ++meta_ptr_to, ++data_ptr_to) {
         uint8_t& meta = *meta_ptr_to = *meta_ptr_from;
         ICHECK(meta != kProtectedSlot);
         if (meta != uint8_t(kEmptySlot)) {
@@ -512,6 +586,15 @@ class DenseMapNode : public MapNode {
   }
 
   bool IsFull() const { return size_ + 1 > (slots_ + 1) * kMaxLoadFactor; }
+
+  uint64_t IncItr(uint64_t index) const {
+    for (++index; index <= slots_; ++index) {
+      if (!ListNode(index, this).IsEmpty()) {
+        return index;
+      }
+    }
+    return slots_ + 1;
+  }
 
   uint64_t DecItr(uint64_t index) const {
     while (index != 0) {
