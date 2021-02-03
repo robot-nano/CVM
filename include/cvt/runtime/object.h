@@ -318,6 +318,15 @@ struct ObjectPtrHash {
   }
 };
 
+struct ObjectPtrEqual {
+  bool operator()(const ObjectRef& a, const ObjectRef& b) const { return a.same_as(b); }
+
+  template <typename T>
+  size_t operator()(const ObjectPtr<T>& a, const ObjectPtr<T>& b) const {
+    return a == b;
+  }
+};
+
 /*!
  * \brief helper macro to declare a base object type that can be inherited.
  * \param TypeName The name of the current type.
