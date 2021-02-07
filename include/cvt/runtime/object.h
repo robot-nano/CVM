@@ -497,6 +497,15 @@ inline bool Object::IsInstance() const {
   }
 }
 
+template <typename ObjectType>
+inline const ObjectType* ObjectRef::as() const {
+  if (data_ != nullptr && data_->template IsInstance<ObjectType>()) {
+    return static_cast<ObjectType*>(data_.get());
+  } else {
+    return nullptr;
+  }
+}
+
 template <typename SubRef, typename BaseRef>
 inline SubRef Downcast(BaseRef ref) {
   if (ref.defined()) {

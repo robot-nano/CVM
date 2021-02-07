@@ -356,11 +356,367 @@ class DenseMapNode : public MapNode {
 
   ~DenseMapNode() {}
 
+  size_t count(const key_type& key) const { return !Search(key).IsNone(); }
+
+  const mapped_type& at(const key_type& key) const { return At(key); }
+
+  mapped_type& at(const key_type& key) { return At(key); }
+
+  iterator find(const key_type& key) const {
+    ListNode node = Search(key);
+    return node.IsNone() ? end() : iterator(node.index, this);
+  }
+
+  void erase(const iterator& position) {
+    uint64_t index = position.index;
+    if (position.self != nullptr && index <= this->slots_) {
+      Erase(ListNode(index, this));
+    }
+  }
+
+  iterator begin() const {
+    if (slots_ == 0) {
+      return iterator(0, this);
+    }
+    for (uint64_t index = 0; index <= slots_; ++index) {
+      if (!ListNode(index, this).IsEmpty()) {
+        return iterator(index, this);
+      }
+    }
+    return iterator(slots_ + 1, this);
+  }
+
+  iterator end() const { return slots_ == 0 ? iterator(0, this) : iterator(slots_ + 1, this); }
+
  private:
   ListNode Search(const key_type& key) const {
     if (this->size_ == 0) {
       return ListNode();
     }
+    for (ListNode iter = GetListHead(ObjectHash()(key)); !iter.IsNone(); iter.MoveToNext(this)) {
+      if (ObjectEqual()(key, iter.Key())) {
+        return iter;
+      }
+    }
+    return ListNode();
+  }
+
+  mapped_type& At(const key_type& key) const {
+    ListNode iter = Search(key);
+    ICHECK(!iter.IsNone()) << "IndexError: key is not in Map";
+    return iter.Val();
+  }
+
+  /*!
+   * \brief Try to insert a key, or do nothing if already exists
+   * \param key The indexing key
+   * \param result The linked-list entry found or just constructed
+   * \return A boolean, indicating if actual insertion happens
+   */
+  bool TryInsert(const key_type& key, ListNode* result) {
+    if (slots_ == 0) {
+      return false;
+    }
+    // required that `iter` to be the head of a linked list through which we can iterator
+    ListNode iter = IndexFromHash(ObjectHash()(key));
+    // `iter` can be: 1) empty; 2) body of an irrelevant list; 3) head of the relevant list
+    // Case 1: empty
+    if (iter.IsEmpty()) {
+      iter.NewHead(KVType(key, ObjectRef(nullptr)));
+      this->size_ += 1;
+      *result = iter;
+      return true;
+    }
+    // Case 2: body of an irrelevant list
+    if (!iter.IsHead()) {
+      return IsFull() ? false : TrySpareListHead(iter, key, result);
+    }
+    // Case 3: head of the relevant list
+    // we iterate through the linked list util the end
+    // make sure `iter` is the previous element of `next`
+    ListNode next = iter;
+    do {
+      // find equal item, do not insert
+      if (ObjectEqual()(key, next.Key())) {
+        *result = next;
+        return true;
+      }
+      // make sure `iter` is the previous element of `next`
+      iter = next;
+    } while (next.MoveToNext(this));
+    // `iter` is the tail of the linked list
+    // always check capacity before insertion
+    if (IsFull()) {
+      return false;
+    }
+    // find the next empty lost
+    uint8_t jump;
+    if (!iter.GetNextEmpty(this, &jump, result)) {
+      return false;
+    }
+    result->NewTail(KVType(key, ObjectRef(nullptr)));
+    // link `iter` to `empty`, and move forward
+    iter.SetJump(jump);
+    this->size_ += 1;
+    return true;
+  }
+  /*!
+   * \brief Spare an entry to be the head of a linked list.
+   * As described in B3, during insertion, it is possible that the entire linked list does not
+   * exist, but the slot of its head has been occupied by other linked lists. In this case, we need
+   * to spare the slot by moving away the elements to another valid empty one to make insertion
+   * possible.
+   * \param target The give entry to be spared
+   * \param key The indexing key
+   * \param result The linked-list entry constructed as the head
+   * \return A boolean, if actual insertion happens
+   */
+  bool TrySpareListHead(ListNode target, const key_type& key, ListNode* result) {
+    // `target` is not the head of the linked list
+    // move the original item of `target` (if any)
+    // and construct new item on the position `target`
+    // To make `target` empty, we
+    // 1) find `w` the previous element of `target` in the linked list
+    // 2) copy the linked list starting from `r = target`
+    // 3) paste them after `w`
+    // read from the linked list after `r`
+    ListNode r = target;
+    // write to the tail of `w`
+    ListNode w = target.FindPrev(this);
+    // after `target` is moved, we disallow writing to the slot
+    bool is_first = true;
+    uint8_t r_meta, jump;
+    ListNode empty;
+    do {
+      // `jump` describes how `w` is jumped to `empty`
+      // rehash if there is no empty space after `w`
+      if (!w.GetNextEmpty(this, &jump, &empty)) {
+        return false;
+      }
+      // move `r` to `empty`
+      empty.NewTail(std::move(r.Data()));
+      // clear the metadata of `r`
+      r_meta = r.Meta();
+      if (is_first) {
+        is_first = false;
+        r.SetProtected();
+      } else {
+        r.SetEmpty();
+      }
+      // link `w` to `empty`, and move forward
+      w.SetJump(jump);
+      w = empty;
+      // move `r` forward as well
+    } while (r.MoveToNext(this, r_meta));
+    // finally we have done moving the linked list
+    // fill data_ into `target`
+    target.NewHead(KVType(key, ObjectRef(nullptr)));
+    this->size_ += 1;
+    *result = target;
+    return true;
+  }
+  /*!
+   * \brief Remove the ListNode
+   * \param iter The node to be removed
+   */
+  void Erase(const ListNode& iter) {
+    this->size_ -= 1;
+    if (!iter.HasNext()) {
+      // `iter` is the last
+      if (!iter.IsHead()) {
+        // cut the link if there is any
+        iter.FindPrev(this).SetJump(0);
+      }
+      iter.Data().KVType::~KVType();
+      iter.SetEmpty();
+    } else {
+      ListNode last = iter, prev = iter;
+      for (last.MoveToNext(this); last.HasNext(); prev = last, last.MoveToNext(this)) {
+      }
+      iter.Data() = std::move(last.Data());
+      last.SetEmpty();
+      prev.SetJump(0);
+    }
+  }
+  /*! \brief Clear the container to empty, release all entries and memory acquired */
+  void Reset() {
+    uint64_t n_blocks = CalcNumBlocks(this->slots_);
+    for (uint64_t bi = 0; bi < n_blocks; ++bi) {
+      uint8_t* meta_ptr = data_[bi].bytes;
+      KVType* data_ptr = reinterpret_cast<KVType*>(data_[bi].bytes + kBlockCap);
+      for (int j = 0; j < kBlockCap; ++j, ++meta_ptr, ++data_ptr) {
+        uint8_t& meta = *meta_ptr;
+        if (meta != uint8_t(kProtectedSlot) && meta != uint8_t(kEmptySlot)) {
+          meta = uint8_t(kEmptySlot);
+          data_ptr->KVType::~KVType();
+        }
+      }
+    }
+    ReleaseMemory();
+  }
+
+  void ReleaseMemory() {
+    delete[] data_;
+    data_ = nullptr;
+    slots_ = 0;
+    size_ = 0;
+    fib_shift_ = 63;
+  }
+
+  static ObjectPtr<DenseMapNode> Empty(uint32_t fib_shift, uint64_t n_slots) {
+    ICHECK_GT(n_slots, uint64_t(SmallMapNode::kMaxSize));
+    ObjectPtr<DenseMapNode> p = make_object<DenseMapNode>();
+    uint64_t n_blocks = CalcNumBlocks(n_slots - 1);
+    Block* block = p->data_ = new Block[n_blocks];
+    p->slots_ = n_slots - 1;
+    p->size_ = 0;
+    p->fib_shift_ = fib_shift;
+    for (uint64_t i = 0; i < n_blocks; ++i, ++block) {
+      std::fill(block->bytes, block->bytes + kBlockCap, uint8_t(kEmptySlot));
+    }
+    return p;
+  }
+
+  static ObjectPtr<DenseMapNode> CopyFrom(DenseMapNode* from) {
+    ObjectPtr<DenseMapNode> p = make_object<DenseMapNode>();
+    uint64_t n_blocks = CalcNumBlocks(from->slots_);
+    p->data_ = new Block[n_blocks];
+    p->slots_ = from->slots_;
+    p->size_ = from->size_;
+    p->fib_shift_ = from->fib_shift_;
+    for (uint64_t bi = 0; bi < n_blocks; ++bi) {
+      uint8_t* meta_ptr_from = from->data_[bi].bytes;
+      KVType* data_ptr_from = reinterpret_cast<KVType*>(from->data_[bi].bytes + kBlockCap);
+      uint8_t* meta_ptr_to = p->data_[bi].bytes;
+      KVType* data_ptr_to = reinterpret_cast<KVType*>(p->data_[bi].bytes + kBlockCap);
+      for (int j = 0; j < kBlockCap;
+           ++j, ++meta_ptr_from, ++data_ptr_from, ++meta_ptr_to, ++data_ptr_to) {
+        uint8_t& meta = *meta_ptr_to = *meta_ptr_from;
+        ICHECK(meta != kProtectedSlot);
+        if (meta != uint8_t(kEmptySlot)) {
+          new (data_ptr_to) KVType(*data_ptr_from);
+        }
+      }
+    }
+    return p;
+  }
+
+  static void InsertMaybeReHash(const KVType& kv, ObjectPtr<Object>* map) {
+    DenseMapNode* map_node = static_cast<DenseMapNode*>(map->get());
+    ListNode iter;
+    // Try to insert. If succeed, we simply return
+    if (map_node->TryInsert(kv.first, &iter)) {
+      iter.Val() = kv.second;
+      return;
+    }
+    ICHECK_GT(map_node->slots_, uint64_t(SmallMapNode::kMaxSize));
+    // Otherwise, start rehash
+    ObjectPtr<Object> p = Empty(map_node->fib_shift_ - 1, map_node->slots_ * 2 + 2);
+    // Insert the given `kv` into the new hash map
+    InsertMaybeReHash(kv, &p);
+    uint64_t n_blocks = CalcNumBlocks(map_node->slots_);
+    // Then Insert data from the original block.
+    for (uint64_t bi = 0; bi < n_blocks; ++bi) {
+      uint8_t* meta_ptr = map_node->data_[bi].bytes;
+      KVType* data_ptr = reinterpret_cast<KVType*>(map_node->data_[bi].bytes + kBlockCap);
+      for (int j = 0; j < kBlockCap; ++j, ++meta_ptr, ++data_ptr) {
+        uint8_t& meta = *meta_ptr;
+        if (meta != uint8_t(kProtectedSlot) && meta != uint8_t(kEmptySlot)) {
+          meta = uint8_t(kEmptySlot);
+          KVType kv = std::move(*data_ptr);
+          InsertMaybeReHash(kv, &p);
+        }
+      }
+    }
+    map_node->ReleaseMemory();
+    *map = p;
+  }
+
+  /*!
+   * \brief Check whether the hash table is full
+   * \return A boolean indicating whether hash table is full
+   */
+  bool IsFull() const { return size_ + 1 > (slots_ + 1) * kMaxLoadFactor; }
+  /*!
+   * \brief Increment the pointer
+   * \param index The pointer to be incremented
+   * \return The increased pointer
+   */
+  uint64_t IncItr(uint64_t index) const {
+    for (++index; index <= slots_; ++index) {
+      if (!ListNode(index, this).IsEmpty()) {
+        return index;
+      }
+    }
+    return slots_ + 1;
+  }
+  /*!
+   * \brief Decrement the pointer
+   * \param index The pointer to be decremented
+   * \return The decreased pointer
+   */
+  uint64_t DecItr(uint64_t index) const {
+    while (index != 0) {
+      index -= 1;
+      if (!ListNode(index, this).IsEmpty()) {
+        return index;
+      }
+    }
+    return slots_ + 1;
+  }
+  /*!
+   * \brief De-reference the pointer
+   * \param index The pointer to be dereferenced
+   * \return The result
+   */
+  KVType* DeRefItr(uint64_t index) const { return &ListNode(index, this).Data(); }
+
+  ListNode IndexFromHash(uint64_t hash_value) const {
+    return ListNode(FibHash(hash_value, fib_shift_), this);
+  }
+
+  ListNode GetListHead(uint64_t hash_value) const {
+    ListNode node = IndexFromHash(hash_value);
+    return node.IsHead() ? node : ListNode();
+  }
+
+  static uint64_t CalcNumBlocks(uint64_t n_slots_m1) {
+    uint64_t n_slots = n_slots_m1 > 0 ? n_slots_m1 + 1 : 0;
+    return (n_slots + kBlockCap - 1) / kBlockCap;
+  }
+
+  /*!
+   * \brief Calculate the power-of-2 table size given the lower-bound of required capacity.
+   * \param cap The lower-bound of the required capacity
+   * \param fib_shift The result shift for Fibonacci Hashing
+   * \param n_slots The results number of slots
+   */
+  static void CalcTableSize(uint64_t cap, uint32_t* fib_shift, uint64_t* n_slots) {
+    uint32_t shift = 64;
+    uint64_t slots = 1;
+    for (uint64_t c = cap; c; c >>= 1) {
+      shift -= 1;
+      slots <<= 1;
+    }
+    ICHECK_GT(slots, cap);
+    if (slots < cap * 2) {
+      *fib_shift = shift - 1;
+      *n_slots = slots << 1;
+    } else {
+      *fib_shift = shift;
+      *n_slots = slots;
+    }
+  }
+
+  /*!
+   * \brief Fibonacci Hashing, maps a hash code to an index in a power-of-2-sized table.
+   * \param hash_value The raw hash value
+   * \param fib_shift The shift in Fibonacci Hashing
+   * \return An index calculated using Fibonacci Hashing
+   */
+  static uint64_t FibHash(uint64_t hash_value, uint32_t fib_shift) {
+    constexpr uint64_t coeff = 11400714819323198485ull;
+    return (coeff * hash_value) >> fib_shift;
   }
 
   struct ListNode {
@@ -372,8 +728,8 @@ class DenseMapNode : public MapNode {
     uint8_t& Meta() const { return *(block->bytes + index % kBlockCap); }
 
     KVType& Data() const {
-        return *(reinterpret_cast<KVType*>(block->bytes + kBlockCap +
-                                           (index % kBlockCap) * sizeof(KVType)));
+      return *(reinterpret_cast<KVType*>(block->bytes + kBlockCap +
+                                         (index % kBlockCap) * sizeof(KVType)));
     }
 
     key_type& Key() const { return Data().first; }
@@ -419,9 +775,27 @@ class DenseMapNode : public MapNode {
     }
 
     bool MoveToNext(const DenseMapNode* self) { return MoveToNext(self, Meta()); }
-
+    /*! \brief Get the previous entry on the linked list */
     ListNode FindPrev(const DenseMapNode* self) const {
-
+      // start from the head of the linked list, which must exist
+      ListNode next = self->IndexFromHash(ObjectHash()(Key()));
+      // `prev` is always the previous item of `next`
+      ListNode prev = next;
+      for (next.MoveToNext(self); index != next.index; prev = next, next.MoveToNext(self)) {
+      }
+      return prev;
+    }
+    /*! \brief Get the next empty jump */
+    bool GetNextEmpty(const DenseMapNode* self, uint8_t* jump, ListNode* result) const {
+      for (uint8_t idx = 1; idx < kNumJumpDists; ++idx) {
+        ListNode candidate((index + kNextProbeLocation[idx]) & (self->slots_), self);
+        if (candidate.IsEmpty()) {
+          *jump = idx;
+          *result = candidate;
+          return true;
+        }
+      }
+      return false;
     }
 
     uint64_t index;
@@ -448,10 +822,10 @@ class DenseMapNode : public MapNode {
       1081, 1128, 1176, 1225, 1275, 1326, 1378, 1431, 1485, 1540,
       1596, 1653, 1711, 1770, 1830, 1891, 1953, 2016, 2080, 2145,
       2211, 2278, 2346, 2415, 2485, 2556, 2628,
-      // Larger triangle numbers
+      // larger triangle numbers
       8515, 19110, 42778, 96141, 216153,
       486591, 1092981, 2458653, 5532801, 12442566,
-      27993904, 62983476, 141717030, 318844378, 717352503,
+      27993903, 62983476, 141717030, 318844378, 717352503,
       1614057336, 3631522476, 8170957530, 18384510628, 41364789378,
       93070452520, 209408356380, 471168559170, 1060128894105, 2385289465695,
       5366898840628, 12075518705635, 27169915244790, 61132312065111, 137547689707000,
@@ -461,7 +835,7 @@ class DenseMapNode : public MapNode {
   };
   /* clang-format on */
   friend class MapNode;
-};  // class DenseMapNode
+};
 
 //#define CVT_DISPATCH_MAP_CONST(base, var, body) \
 //  {                                             \
@@ -501,22 +875,22 @@ inline ObjectPtr<MapNode> MapNode::CopyFrom(MapNode* from) {
 
 template <typename IterType>
 inline ObjectPtr<Object> MapNode::CreateFromRange(IterType first, IterType last) {
-//  int64_t _cap = std::distance(first, last);
-//  if (_cap < 0) return SmallMapNode::Empty();
-//
-//  uint64_t cap = static_cast<uint64_t>(_cap);
-//  if (cap < SmallMapNode::kMaxSize) {
-//    return SmallMapNode::CreateFromRange(cap, first, last);
-//  }
-//  uint32_t fib_shift;
-//  uint64_t n_slots;
-//  DenseMapNode::CalcTableSize(cap, &fib_shift, &n_slots);
-//  ObjectPtr<Object> obj = DenseMapNode::Empty(fib_shift, n_slots);
-//  for (; first != last; ++first) {
-//    KVType kv(*first);
-//    DenseMapNode::InsertMaybeReHash(kv, &obj);
-//  }
-//  return obj;
+    int64_t _cap = std::distance(first, last);
+    if (_cap < 0) return SmallMapNode::Empty();
+
+    uint64_t cap = static_cast<uint64_t>(_cap);
+    if (cap < SmallMapNode::kMaxSize) {
+      return SmallMapNode::CreateFromRange(cap, first, last);
+    }
+    uint32_t fib_shift;
+    uint64_t n_slots;
+    DenseMapNode::CalcTableSize(cap, &fib_shift, &n_slots);
+    ObjectPtr<Object> obj = DenseMapNode::Empty(fib_shift, n_slots);
+    for (; first != last; ++first) {
+      KVType kv(*first);
+      DenseMapNode::InsertMaybeReHash(kv, &obj);
+    }
+    return obj;
 }
 
 inline void MapNode::InsertMaybeReHash(const KVType& kv, ObjectPtr<Object>* map) {
