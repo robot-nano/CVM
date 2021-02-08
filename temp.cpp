@@ -9,21 +9,16 @@
 
 using namespace cvt;
 
-class ND {
- public:
-  class List {
-   public:
-    void print() {
-      std::cout << kNum[0] << std::endl;
-    }
-  };
 
-  static constexpr uint64_t kNum[10] {
-      1, 2, 3, 4, 5, 6, 7, 8, 9, 10
-  };
-};
 
 int main() {
-  std::map<String, String> raw_map{{"a", "va"}, {"b", "vb"}, {"c", "vc"}, {"d", "vd"}};
-  Map<String, String> map(raw_map.begin(), raw_map.end());
+  DenseMapNode dense_map_node;
+
+//  Map<String, String> map{{"1", "v1"},
+//                          {"2", "v2"},
+//                          {"3", "v3"},
+//                          {"4", "v4"}};
+//  map.at(String("1"));
+  DenseMapNode::ListNode list_node;
+  list_node.HasNext();
 }

@@ -5,6 +5,9 @@
 #ifndef CVT_INCLUDE_CVT_RUNTIME_NODE_CONTAINER_H_
 #define CVT_INCLUDE_CVT_RUNTIME_NODE_CONTAINER_H_
 
+#ifndef USE_FALLBACK_STL_MAP
+#define USE_FALLBACK_STL_MAP 0
+#endif
 #include <cvt/runtime/container.h>
 #include <cvt/runtime/memory.h>
 #include <cvt/runtime/object.h>
@@ -12,6 +15,7 @@
 
 #include <algorithm>
 #include <string>
+#include <unordered_map>
 #include <utility>
 
 namespace cvt {
@@ -22,6 +26,7 @@ using runtime::Object;
 using runtime::ObjectEqual;
 using runtime::ObjectHash;
 using runtime::ObjectPtr;
+using runtime::ObjectPtrEqual;
 using runtime::ObjectPtrHash;
 using runtime::ObjectRef;
 using runtime::String;
@@ -164,7 +169,7 @@ class MapNode : public Object {
 
   template <typename, typename, typename, typename>
   friend class Map;
-};  // class MapNode
+};
 
 /*! \brief A specialization of small-sized hash map */
 class SmallMapNode : public MapNode,
@@ -230,7 +235,7 @@ class SmallMapNode : public MapNode,
   }
 
   static ObjectPtr<SmallMapNode> Empty(uint64_t n = kInitSize) {
-    using cvt::runtime::make_inplace_array_object;
+    using ::cvt::runtime::make_inplace_array_object;
     ObjectPtr<SmallMapNode> p = make_inplace_array_object<SmallMapNode, KVType>(n);
     p->size_ = 0;
     p->slots_ = n;
@@ -273,72 +278,35 @@ class SmallMapNode : public MapNode,
     InsertMaybeReHash(kv, &new_map);
     *map = std::move(new_map);
   }
-
+  /*!
+   * \brief Increment the pointer
+   * \param index The pointer to be incremented
+   * \return The increased pointer
+   */
+  uint64_t IncItr(uint64_t index) const { return index + 1 < size_ ? index + 1 : size_; }
+  /*!
+   * \brief Decrement the pointer
+   * \param index The pointer to be decremented
+   * \return The decreased pointer
+   */
+  uint64_t DecItr(uint64_t index) const { return index > 0 ? index - 1 : size_; }
+  /*!
+   * \brief De-reference the pointer
+   * \param index The pointer to be dereferenced
+   * \return The result
+   */
+  KVType* DeRefItr(uint64_t index) const { return static_cast<KVType*>(AddressOf(index)); }
+  /*! \brief A size function used by InplaceArrayBase */
   uint64_t GetSize() const { return size_; }
 
+ protected:
   friend class MapNode;
   friend class DenseMapNode;
   friend class runtime::InplaceArrayBase<SmallMapNode, MapNode::KVType>;
-};  // class SmallMapNode
+};
 
-/*!
- * \brief A specialization of hash map that implements the idea of array-based hash map.
- * Another reference implementation can be found [1].
- *
- * A. Overview
- *
- * DenseMapNode did several improvements over traditional separate chaining hash,
- * in terms of cache locality, memory footprints and data organization.
- *
- * A1. Implicit linked list. For better cache locality, instead of using linked list
- * explicitly for each bucket, we store list data into a single array that spans contiguously
- * in memory, and then carefully design access patterns to make sure most of them fall into
- * a single cache line.
- *
- * A2. 1-byte metadata. There is only 1 byte overhead for each slot in the array to indexing and
- * traversal. This can be divided in 3 parts.
- * 1) Reserved code: (0b11111111)_2 indicates a slot is empty; (0b11111110)_2 indicates protected,
- * which means the slot is empty buyt not allowed to be written.
- * 2) If not empty or protected, the highest bit is used to indicate whether data in the slot is
- * head of a linked list.
- * 3) The rest 7 bits are used as the "next pointer" (i.e. pointer to the next element). On 64-bit
- * architecture, an ordinary pointer can take up to 8 bytes, which is not acceptable overhead when
- * dealing with 16-byte ObjectRef pairs. Based on a commonly noticed fact that the lists are
- * relatively short (length <= 3) in hash maps, we follow [1]'s idea that only allows the pointer to
- * be one of the 126 possible value, i.e. if the next element of i-th slot is (i + x)-th element,
- * then x must be one of the 126 pre-defined values.
- *
- *  A3. Data blocking. We organize the array in the way that every 16 elements forms a data block.
- *  The 16-byte metadata of those 16 elements are stored together, followed by the real data, i.e.
- *  16 key-value pairs.
- *
- *  B. Implementation details
- *
- *  B1. Power-of-2 table size and Fibonacci Hashing. We use power-of-two as table size to avoid
- *  module for more efficient arithmetics. To make the hash-to-slot mapping distribute more evenly,
- *  we use the Fibonacci Hashing [2] trick.
- *
- *  B2. Traverse a linked list in the array.
- *  1) List head. Assume Fibonacci Hashing maps a given key to slot i, if metadata at slot i
- *  indicates the it is list head, then we found the head; otherwise the list is empty. No probing
- *  is done in this procedure. 2) Next element. To find the next element of a non-empty slot i, we
- *  look at the last 7 bits of the metadata at slot i. If they are all zeros, then it is the end of
- *  list; otherwise, we know that the next element is (i + candidates[the-last-7-bits]).
- *
- *  B3. InsertMaybeReHash an element. Following B2, we first traverse the linked list to see if this
- *  element is in the linked list, and if not, we put is at the end by probing the next empty
- *  position in one of the 126 candidate positions. If the linked list does not even exist, but the
- *  slot for list head has been occupied by another linked list, we should find this intruder
- * another place.
- *
- *  B4. Quadratic probing with triangle numbers. In open address hashing, it is provable that
- * probing with triangle numbers can traverse power-of-2-sized table [3]. In our algorithm, we
- * follow the suggestion in [1] that also use triangle numbers for "next pointer" as well as sparing
- * for list head.
- *
- */
 class DenseMapNode : public MapNode {
- private:
+ public:
   static constexpr int kBlockCap = 16;
   static constexpr double kMaxLoadFactor = 0.99;
   static constexpr uint8_t kEmptySlot = uint8_t(0b11111111);
@@ -370,7 +338,6 @@ class DenseMapNode : public MapNode {
   void erase(const iterator& position) {
     uint64_t index = position.index;
     if (position.self != nullptr && index <= this->slots_) {
-      Erase(ListNode(index, this));
     }
   }
 
@@ -388,7 +355,7 @@ class DenseMapNode : public MapNode {
 
   iterator end() const { return slots_ == 0 ? iterator(0, this) : iterator(slots_ + 1, this); }
 
- private:
+ public:
   ListNode Search(const key_type& key) const {
     if (this->size_ == 0) {
       return ListNode();
@@ -407,12 +374,6 @@ class DenseMapNode : public MapNode {
     return iter.Val();
   }
 
-  /*!
-   * \brief Try to insert a key, or do nothing if already exists
-   * \param key The indexing key
-   * \param result The linked-list entry found or just constructed
-   * \return A boolean, indicating if actual insertion happens
-   */
   bool TryInsert(const key_type& key, ListNode* result) {
     if (slots_ == 0) {
       return false;
@@ -429,10 +390,11 @@ class DenseMapNode : public MapNode {
     }
     // Case 2: body of an irrelevant list
     if (!iter.IsHead()) {
+      // we move the elements around and construct the single-element linked list
       return IsFull() ? false : TrySpareListHead(iter, key, result);
     }
     // Case 3: head of the relevant list
-    // we iterate through the linked list util the end
+    // we iterate through the linked list until the end
     // make sure `iter` is the previous element of `next`
     ListNode next = iter;
     do {
@@ -449,7 +411,7 @@ class DenseMapNode : public MapNode {
     if (IsFull()) {
       return false;
     }
-    // find the next empty lost
+    // find the next empty slot
     uint8_t jump;
     if (!iter.GetNextEmpty(this, &jump, result)) {
       return false;
@@ -460,17 +422,7 @@ class DenseMapNode : public MapNode {
     this->size_ += 1;
     return true;
   }
-  /*!
-   * \brief Spare an entry to be the head of a linked list.
-   * As described in B3, during insertion, it is possible that the entire linked list does not
-   * exist, but the slot of its head has been occupied by other linked lists. In this case, we need
-   * to spare the slot by moving away the elements to another valid empty one to make insertion
-   * possible.
-   * \param target The give entry to be spared
-   * \param key The indexing key
-   * \param result The linked-list entry constructed as the head
-   * \return A boolean, if actual insertion happens
-   */
+
   bool TrySpareListHead(ListNode target, const key_type& key, ListNode* result) {
     // `target` is not the head of the linked list
     // move the original item of `target` (if any)
@@ -515,49 +467,10 @@ class DenseMapNode : public MapNode {
     *result = target;
     return true;
   }
-  /*!
-   * \brief Remove the ListNode
-   * \param iter The node to be removed
-   */
-  void Erase(const ListNode& iter) {
-    this->size_ -= 1;
-    if (!iter.HasNext()) {
-      // `iter` is the last
-      if (!iter.IsHead()) {
-        // cut the link if there is any
-        iter.FindPrev(this).SetJump(0);
-      }
-      iter.Data().KVType::~KVType();
-      iter.SetEmpty();
-    } else {
-      ListNode last = iter, prev = iter;
-      for (last.MoveToNext(this); last.HasNext(); prev = last, last.MoveToNext(this)) {
-      }
-      iter.Data() = std::move(last.Data());
-      last.SetEmpty();
-      prev.SetJump(0);
-    }
-  }
-  /*! \brief Clear the container to empty, release all entries and memory acquired */
-  void Reset() {
-    uint64_t n_blocks = CalcNumBlocks(this->slots_);
-    for (uint64_t bi = 0; bi < n_blocks; ++bi) {
-      uint8_t* meta_ptr = data_[bi].bytes;
-      KVType* data_ptr = reinterpret_cast<KVType*>(data_[bi].bytes + kBlockCap);
-      for (int j = 0; j < kBlockCap; ++j, ++meta_ptr, ++data_ptr) {
-        uint8_t& meta = *meta_ptr;
-        if (meta != uint8_t(kProtectedSlot) && meta != uint8_t(kEmptySlot)) {
-          meta = uint8_t(kEmptySlot);
-          data_ptr->KVType::~KVType();
-        }
-      }
-    }
-    ReleaseMemory();
-  }
 
   void ReleaseMemory() {
     delete[] data_;
-    data_ = nullptr;
+    data_  = nullptr;
     slots_ = 0;
     size_ = 0;
     fib_shift_ = 63;
@@ -577,30 +490,6 @@ class DenseMapNode : public MapNode {
     return p;
   }
 
-  static ObjectPtr<DenseMapNode> CopyFrom(DenseMapNode* from) {
-    ObjectPtr<DenseMapNode> p = make_object<DenseMapNode>();
-    uint64_t n_blocks = CalcNumBlocks(from->slots_);
-    p->data_ = new Block[n_blocks];
-    p->slots_ = from->slots_;
-    p->size_ = from->size_;
-    p->fib_shift_ = from->fib_shift_;
-    for (uint64_t bi = 0; bi < n_blocks; ++bi) {
-      uint8_t* meta_ptr_from = from->data_[bi].bytes;
-      KVType* data_ptr_from = reinterpret_cast<KVType*>(from->data_[bi].bytes + kBlockCap);
-      uint8_t* meta_ptr_to = p->data_[bi].bytes;
-      KVType* data_ptr_to = reinterpret_cast<KVType*>(p->data_[bi].bytes + kBlockCap);
-      for (int j = 0; j < kBlockCap;
-           ++j, ++meta_ptr_from, ++data_ptr_from, ++meta_ptr_to, ++data_ptr_to) {
-        uint8_t& meta = *meta_ptr_to = *meta_ptr_from;
-        ICHECK(meta != kProtectedSlot);
-        if (meta != uint8_t(kEmptySlot)) {
-          new (data_ptr_to) KVType(*data_ptr_from);
-        }
-      }
-    }
-    return p;
-  }
-
   static void InsertMaybeReHash(const KVType& kv, ObjectPtr<Object>* map) {
     DenseMapNode* map_node = static_cast<DenseMapNode*>(map->get());
     ListNode iter;
@@ -610,7 +499,7 @@ class DenseMapNode : public MapNode {
       return;
     }
     ICHECK_GT(map_node->slots_, uint64_t(SmallMapNode::kMaxSize));
-    // Otherwise, start rehash
+    // otherwise, start rehash
     ObjectPtr<Object> p = Empty(map_node->fib_shift_ - 1, map_node->slots_ * 2 + 2);
     // Insert the given `kv` into the new hash map
     InsertMaybeReHash(kv, &p);
@@ -632,16 +521,8 @@ class DenseMapNode : public MapNode {
     *map = p;
   }
 
-  /*!
-   * \brief Check whether the hash table is full
-   * \return A boolean indicating whether hash table is full
-   */
   bool IsFull() const { return size_ + 1 > (slots_ + 1) * kMaxLoadFactor; }
-  /*!
-   * \brief Increment the pointer
-   * \param index The pointer to be incremented
-   * \return The increased pointer
-   */
+
   uint64_t IncItr(uint64_t index) const {
     for (++index; index <= slots_; ++index) {
       if (!ListNode(index, this).IsEmpty()) {
@@ -650,11 +531,7 @@ class DenseMapNode : public MapNode {
     }
     return slots_ + 1;
   }
-  /*!
-   * \brief Decrement the pointer
-   * \param index The pointer to be decremented
-   * \return The decreased pointer
-   */
+
   uint64_t DecItr(uint64_t index) const {
     while (index != 0) {
       index -= 1;
@@ -664,11 +541,7 @@ class DenseMapNode : public MapNode {
     }
     return slots_ + 1;
   }
-  /*!
-   * \brief De-reference the pointer
-   * \param index The pointer to be dereferenced
-   * \return The result
-   */
+
   KVType* DeRefItr(uint64_t index) const { return &ListNode(index, this).Data(); }
 
   ListNode IndexFromHash(uint64_t hash_value) const {
@@ -685,12 +558,6 @@ class DenseMapNode : public MapNode {
     return (n_slots + kBlockCap - 1) / kBlockCap;
   }
 
-  /*!
-   * \brief Calculate the power-of-2 table size given the lower-bound of required capacity.
-   * \param cap The lower-bound of the required capacity
-   * \param fib_shift The result shift for Fibonacci Hashing
-   * \param n_slots The results number of slots
-   */
   static void CalcTableSize(uint64_t cap, uint32_t* fib_shift, uint64_t* n_slots) {
     uint32_t shift = 64;
     uint64_t slots = 1;
@@ -708,12 +575,6 @@ class DenseMapNode : public MapNode {
     }
   }
 
-  /*!
-   * \brief Fibonacci Hashing, maps a hash code to an index in a power-of-2-sized table.
-   * \param hash_value The raw hash value
-   * \param fib_shift The shift in Fibonacci Hashing
-   * \return An index calculated using Fibonacci Hashing
-   */
   static uint64_t FibHash(uint64_t hash_value, uint32_t fib_shift) {
     constexpr uint64_t coeff = 11400714819323198485ull;
     return (coeff * hash_value) >> fib_shift;
@@ -760,7 +621,7 @@ class DenseMapNode : public MapNode {
       new (&Data()) KVType(std::move(v));
     }
 
-    bool HasNext() const { return kNextProbeLocation[Meta() & 0b01111111] != 0; }
+    bool HasNext() const { return kNextProbeLocation[Meta() & 0b10000000] != 0; }
 
     bool MoveToNext(const DenseMapNode* self, uint8_t meta) {
       uint64_t offset = kNextProbeLocation[meta & 0b01111111];
@@ -775,17 +636,9 @@ class DenseMapNode : public MapNode {
     }
 
     bool MoveToNext(const DenseMapNode* self) { return MoveToNext(self, Meta()); }
-    /*! \brief Get the previous entry on the linked list */
-    ListNode FindPrev(const DenseMapNode* self) const {
-      // start from the head of the linked list, which must exist
-      ListNode next = self->IndexFromHash(ObjectHash()(Key()));
-      // `prev` is always the previous item of `next`
-      ListNode prev = next;
-      for (next.MoveToNext(self); index != next.index; prev = next, next.MoveToNext(self)) {
-      }
-      return prev;
-    }
-    /*! \brief Get the next empty jump */
+
+    ListNode FindPrev(const DenseMapNode* self) const {}
+
     bool GetNextEmpty(const DenseMapNode* self, uint8_t* jump, ListNode* result) const {
       for (uint8_t idx = 1; idx < kNumJumpDists; ++idx) {
         ListNode candidate((index + kNextProbeLocation[idx]) & (self->slots_), self);
@@ -837,31 +690,57 @@ class DenseMapNode : public MapNode {
   friend class MapNode;
 };
 
-//#define CVT_DISPATCH_MAP_CONST(base, var, body) \
-//  {                                             \
-//    using TSmall = const SmallMapNode*;         \
-//    using TDense = const DenseMapNode*;         \
-//    uint64_t slots = base->slots_;              \
-//    if (slots <= SmallMapNode::kMaxSize) {      \
-//      TSmall var = static_cast<TSmall>(base);   \
-//      body;                                     \
-//    } else {                                    \
-//      TDense var = static_cast<TDense>(base);   \
-//      body;                                     \
-//    }                                           \
-//  }
-//
-// inline size_t MapNode::count(const key_type& key) const {
-//  CVT_DISPATCH_MAP_CONST(this, p, { return p->count(key); });
-//}
-//
-// inline const MapNode::mapped_type& MapNode::at(const key_type& key) const {
-//  CVT_DISPATCH_MAP_CONST(this, p, { return p->at(key); })
-//}
-//
-// inline MapNode::mapped_type& MapNode::at(const key_type& key) {
-//  //  CVT_DISPATCH_MAP_CONST(this, p, {return p->at(key)})
-//}
+#define CVT_DISPATCH_MAP_CONST(base, var, body) \
+  {                                             \
+    using TSmall = const SmallMapNode*;         \
+    using TDense = const DenseMapNode*;         \
+    uint64_t slots = base->slots_;              \
+    if (slots <= SmallMapNode::kMaxSize) {      \
+      TSmall var = static_cast<TSmall>(base);   \
+      body;                                     \
+    } else {                                    \
+      TDense var = static_cast<TDense>(base);   \
+      body;                                     \
+    }                                           \
+  }
+
+inline MapNode::iterator::pointer MapNode::iterator::operator->() const {
+  CVT_DISPATCH_MAP_CONST(self, p, { return p->DeRefItr(index); });
+}
+
+inline MapNode::iterator& MapNode::iterator::operator++() {
+  CVT_DISPATCH_MAP_CONST(self, p, {
+    index = p->IncItr(index);
+    return *this;
+  });
+}
+
+inline MapNode::iterator& MapNode::iterator::operator--() {
+  CVT_DISPATCH_MAP_CONST(self, p, {
+    index = p->IncItr(index);
+    return *this;
+  });
+}
+
+inline size_t MapNode::count(const key_type& key) const {
+  CVT_DISPATCH_MAP_CONST(this, p, { return p->count(key); });
+}
+
+inline const MapNode::mapped_type& MapNode::at(const key_type& key) const {
+  CVT_DISPATCH_MAP_CONST(this, p, { return p->at(key); })
+}
+
+inline MapNode::mapped_type& MapNode::at(const key_type& key) {
+  //  CVT_DISPATCH_MAP_CONST(this, p, { return p->at(key); })
+}
+
+inline MapNode::iterator MapNode::begin() const {
+  CVT_DISPATCH_MAP_CONST(this, p, { return p->begin(); });
+}
+
+inline MapNode::iterator MapNode::end() const {
+  CVT_DISPATCH_MAP_CONST(this, p, { return p->end(); });
+}
 
 inline ObjectPtr<MapNode> MapNode::Empty() { return SmallMapNode::Empty(); }
 
@@ -875,22 +754,23 @@ inline ObjectPtr<MapNode> MapNode::CopyFrom(MapNode* from) {
 
 template <typename IterType>
 inline ObjectPtr<Object> MapNode::CreateFromRange(IterType first, IterType last) {
-    int64_t _cap = std::distance(first, last);
-    if (_cap < 0) return SmallMapNode::Empty();
-
-    uint64_t cap = static_cast<uint64_t>(_cap);
-    if (cap < SmallMapNode::kMaxSize) {
-      return SmallMapNode::CreateFromRange(cap, first, last);
-    }
-    uint32_t fib_shift;
-    uint64_t n_slots;
-    DenseMapNode::CalcTableSize(cap, &fib_shift, &n_slots);
-    ObjectPtr<Object> obj = DenseMapNode::Empty(fib_shift, n_slots);
-    for (; first != last; ++first) {
-      KVType kv(*first);
-      DenseMapNode::InsertMaybeReHash(kv, &obj);
-    }
-    return obj;
+  int64_t _cap = std::distance(first, last);
+  if (_cap < 0) {
+    return SmallMapNode::Empty();
+  }
+  uint64_t cap = static_cast<uint64_t>(_cap);
+  if (cap < SmallMapNode::kMaxSize) {
+    return SmallMapNode::CreateFromRange(cap, first, last);
+  }
+  uint32_t fib_shift;
+  uint64_t n_slots;
+  DenseMapNode::CalcTableSize(cap, &fib_shift, &n_slots);
+  ObjectPtr<Object> obj = DenseMapNode::Empty(fib_shift, n_slots);
+  for (; first != last; ++first) {
+    KVType kv(*first);
+    DenseMapNode::InsertMaybeReHash(kv, &obj);
+  }
+  return obj;
 }
 
 inline void MapNode::InsertMaybeReHash(const KVType& kv, ObjectPtr<Object>* map) {
@@ -919,18 +799,34 @@ class Map : public ObjectRef {
   using key_type = K;
   using mapped_type = V;
   class iterator;
-
+  /*!
+   * \brief default constructor
+   */
   Map() { data_ = MapNode::Empty(); }
-
+  /*!
+   * \brief move constructor
+   * \param other source
+   */
   Map(Map<K, V>&& other) { data_ = std::move(other.data_); }
-
+  /*!
+   * \brief copy constructor
+   * \param other source
+   */
   Map(const Map<K, V>& other) : ObjectRef(other.data_) {}
-
+  /*!
+   * \brief copy assign operator
+   * \param other The source of assignment
+   * \return reference to self.
+   */
   Map<K, V>& operator=(Map<K, V>&& other) {
     data_ = std::move(other.data_);
     return *this;
   }
-
+  /*!
+   * \brief move assign operator
+   * \param other The source of assignment
+   * \return reference to self.
+   */
   Map<K, V>& operator=(const Map<K, V>& other) {
     data_ = other.data_;
     return *this;
@@ -967,11 +863,11 @@ class Map : public ObjectRef {
     CopyOnWrite();
     MapNode::InsertMaybeReHash(MapNode::KVType(key, value), &data_);
   }
-
+  /*! \return begin iterator */
   iterator begin() const { return iterator(GetMapNode()->begin()); }
-
+  /*! \return end iterator */
   iterator end() const { return iterator(GetMapNode()->end()); }
-
+  /*! \return find the key and returns the associated iterator */
   iterator find(const K& key) const { return iterator(GetMapNode()->find(key)); }
 
   void erase(const K& key) { CopyOnWrite()->erase(key); }
@@ -984,9 +880,10 @@ class Map : public ObjectRef {
     }
     return GetMapNode();
   }
-
+  /*! \brief specify container node */
   using ContainerType = MapNode;
 
+  /*! \brief Iterator of the hash map */
   class iterator {
    public:
     using iterator_category = std::bidirectional_iterator_tag;
@@ -997,22 +894,23 @@ class Map : public ObjectRef {
 
     iterator() : itr() {}
 
+    /*! \brief Compare iterators */
     bool operator==(const iterator& other) const { return itr == other.itr; }
-
+    /*! \brief Compare iterators */
     bool operator!=(const iterator& other) const { return itr != other.itr; }
-
+    /*! \brief De-reference iterators is not allowed */
     pointer operator->() const = delete;
-
+    /*! \brief De-reference iterators */
     reference operator*() const {
       auto& kv = *itr;
       return std::make_pair(DowncastNoCheck<K>(kv.first), DowncastNoCheck<V>(kv.second));
     }
-
+    /*! \brief Prefix self increment, e.g. ++iter */
     iterator& operator++() {
       ++itr;
       return *this;
     }
-
+    /*! \brief Suffix self increment */
     iterator operator++(int) {
       iterator copy = *this;
       ++(*this);
