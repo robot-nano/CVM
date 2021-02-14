@@ -6,8 +6,9 @@
 #define CVT_INCLUDE_CVT_RUNTIME_NODE_CONTAINER_H_
 
 #ifndef USE_FALLBACK_STL_MAP
-#define USE_FALLBACK_STL_MAP 0
+#define USE_FALLBACK_STL_MAP 1
 #endif
+
 #include <cvt/runtime/container.h>
 #include <cvt/runtime/memory.h>
 #include <cvt/runtime/object.h>
@@ -17,6 +18,7 @@
 #include <string>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 namespace cvt {
 
@@ -31,6 +33,76 @@ using runtime::ObjectPtrHash;
 using runtime::ObjectRef;
 using runtime::String;
 using runtime::StringObj;
+
+#if (USE_FALLBACK_STL_MAP != 0)
+
+class MapNode : public Object {
+ public:
+  using key_type = ObjectRef;
+  using mapped_type = ObjectRef;
+  using ContainerType = std::unordered_map<ObjectRef, ObjectRef, ObjectHash, ObjectEqual>;
+  using iterator = ContainerType::iterator;
+  using const_iterator = ContainerType::const_iterator;
+  using KVType = ContainerType::value_type;
+
+  static_assert(std::is_standard_layout<KVType>::value, "KVType is not standard layout");
+  static_assert(sizeof(KVType) == 16 || sizeof(KVType) == 8, "sizeof(KVType) incorrect");
+
+  static constexpr const uint32_t _type_index = runtime::TypeIndex::kRuntimeMap;
+  static constexpr const char* _type_key = "Map";
+  CVT_DECLARE_FINAL_OBJECT_INFO(MapNode, Object);
+
+  size_t size() const { return data_.size(); }
+
+  size_t count(const key_type& key) const { return data_.count(key); }
+
+  const mapped_type& at(const key_type& key) const { return data_.at(key); }
+
+  mapped_type& at(const key_type& key) { return data_.at(key); }
+
+  iterator begin() { return data_.begin(); }
+
+  const_iterator begin() const { return data_.begin(); }
+
+  iterator end() { return data_.end(); }
+
+  const_iterator end() const { return data_.end(); }
+
+  const_iterator find(const key_type& key) const { return data_.find(key); }
+
+  iterator find(const key_type& key) { return data_.find(key); }
+
+  void erase(const iterator& position) { data_.erase(position); }
+
+  void erase(const key_type& key) { data_.erase(key); }
+
+  static ObjectPtr<MapNode> Empty() { return make_object<MapNode>(); }
+
+ protected:
+  template <typename IterType>
+  static ObjectPtr<Object> CreateFromRange(IterType first, IterType last) {
+    ObjectPtr<MapNode> p = make_object<MapNode>();
+    p->data_ = ContainerType(first, last);
+    return p;
+  }
+
+  static void InsertMaybeReHash(const KVType& kv, ObjectPtr<Object>* map) {
+    MapNode* map_node = static_cast<MapNode*>(map->get());
+    map_node->data_[kv.first] = kv.second;
+  }
+
+  static ObjectPtr<MapNode> CopyFrom(MapNode* from) {
+    ObjectPtr<MapNode> p = make_object<MapNode>();
+    p->data_ = ContainerType(from->data_.begin(), from->data_.end());
+    return p;
+  }
+
+  ContainerType data_;
+  template <typename, typename, typename, typename>
+  friend class Map;
+};
+
+#else
 
 /*! \brief Shared content of all specializations of hash map */
 class MapNode : public Object {
@@ -306,7 +378,7 @@ class SmallMapNode : public MapNode,
 };
 
 class DenseMapNode : public MapNode {
- public:
+ private:
   static constexpr int kBlockCap = 16;
   static constexpr double kMaxLoadFactor = 0.99;
   static constexpr uint8_t kEmptySlot = uint8_t(0b11111111);
@@ -355,7 +427,7 @@ class DenseMapNode : public MapNode {
 
   iterator end() const { return slots_ == 0 ? iterator(0, this) : iterator(slots_ + 1, this); }
 
- public:
+ private:
   ListNode Search(const key_type& key) const {
     if (this->size_ == 0) {
       return ListNode();
@@ -470,7 +542,7 @@ class DenseMapNode : public MapNode {
 
   void ReleaseMemory() {
     delete[] data_;
-    data_  = nullptr;
+    data_ = nullptr;
     slots_ = 0;
     size_ = 0;
     fib_shift_ = 63;
@@ -690,6 +762,20 @@ class DenseMapNode : public MapNode {
   friend class MapNode;
 };
 
+#define CVT_DISPATCH_MAP(base, var, body)     \
+  {                                           \
+    using TSmall = SmallMapNode*;             \
+    using TDense = DenseMapNode*;             \
+    uint64_t slots = base->slots_;            \
+    if (slots <= SmallMapNode::kMaxSize) {    \
+      TSmall var = static_cast<TSmall>(base); \
+      body;                                   \
+    } else {                                  \
+      TDense var = static_cast<TDense>(base); \
+      body;                                   \
+    }                                         \
+  }
+
 #define CVT_DISPATCH_MAP_CONST(base, var, body) \
   {                                             \
     using TSmall = const SmallMapNode*;         \
@@ -731,7 +817,7 @@ inline const MapNode::mapped_type& MapNode::at(const key_type& key) const {
 }
 
 inline MapNode::mapped_type& MapNode::at(const key_type& key) {
-  //  CVT_DISPATCH_MAP_CONST(this, p, { return p->at(key); })
+  CVT_DISPATCH_MAP(this, p, { return p->at(key); })
 }
 
 inline MapNode::iterator MapNode::begin() const {
@@ -741,6 +827,13 @@ inline MapNode::iterator MapNode::begin() const {
 inline MapNode::iterator MapNode::end() const {
   CVT_DISPATCH_MAP_CONST(this, p, { return p->end(); });
 }
+
+inline MapNode::iterator MapNode::find(const key_type& key) const {
+  CVT_DISPATCH_MAP_CONST(this, p, { return p->find(key); });
+}
+
+#undef CVT_DISPATCH_MAP
+#undef CVT_DISPATCH_MAP_CONST
 
 inline ObjectPtr<MapNode> MapNode::Empty() { return SmallMapNode::Empty(); }
 
@@ -766,7 +859,9 @@ inline ObjectPtr<Object> MapNode::CreateFromRange(IterType first, IterType last)
   uint64_t n_slots;
   DenseMapNode::CalcTableSize(cap, &fib_shift, &n_slots);
   ObjectPtr<Object> obj = DenseMapNode::Empty(fib_shift, n_slots);
+  int i = 0;
   for (; first != last; ++first) {
+    i++;
     KVType kv(*first);
     DenseMapNode::InsertMaybeReHash(kv, &obj);
   }
@@ -790,6 +885,8 @@ inline void MapNode::InsertMaybeReHash(const KVType& kv, ObjectPtr<Object>* map)
     DenseMapNode::InsertMaybeReHash(kv, map);
   }
 }
+
+#endif
 
 template <typename K, typename V,
           typename = typename std::enable_if<std::is_base_of<ObjectRef, K>::value>::type,
@@ -840,6 +937,10 @@ class Map : public ObjectRef {
   }
 
   Map(std::initializer_list<std::pair<K, V>> init) {
+    data_ = MapNode::CreateFromRange(init.begin(), init.end());
+  }
+
+  Map(std::vector<std::pair<K, V>> init) {
     data_ = MapNode::CreateFromRange(init.begin(), init.end());
   }
 

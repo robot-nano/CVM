@@ -1,24 +1,14 @@
-//
-// Created by WangJingYu on 2021/1/21.
-//
-
 #include <cvt/node/container.h>
 
-#include <iostream>
-#include <map>
+#include <vector>
 
 using namespace cvt;
 
+int main(int argc, char** argv) {
+  std::vector<std::pair<String, String>> vec;
+  for (int i = 0; i < 255; ++i) {
+    vec.emplace_back(std::to_string(i), std::to_string(i) + "v");
+  }
 
-
-int main() {
-  DenseMapNode dense_map_node;
-
-//  Map<String, String> map{{"1", "v1"},
-//                          {"2", "v2"},
-//                          {"3", "v3"},
-//                          {"4", "v4"}};
-//  map.at(String("1"));
-  DenseMapNode::ListNode list_node;
-  list_node.HasNext();
+  Map<String, String> map(vec);
 }
