@@ -332,22 +332,22 @@ struct ObjectPtrEqual {
  * \param TypeName The name of the current type.
  * \param ParentType The name of the ParentType
  */
-#define CVT_DECLARE_BASE_OBJECT_INFO(TypeName, ParentType)                                      \
-  static_assert(!ParentType::_type_final, "ParentObj marked as final");                         \
-  static uint32_t RuntimeTypeIndex() {                                                          \
-    static_assert(TypeName::_type_child_slots == 0 || ParentType::_type_child_slots == 0 ||     \
-                      TypeName::_type_child_slots < ParentType::_type_child_slots, \
-                  "Need to set _type_child_slots when parent specifices it.");                  \
-    if (TypeName::_type_index != ::cvt::runtime::TypeIndex::kDynamic) {                         \
-      return TypeName::_type_index;                                                             \
-    }                                                                                           \
-    return _GetOrAllocRuntimeTypeIndex();                                                       \
-  }                                                                                             \
-  static uint32_t _GetOrAllocRuntimeTypeIndex() {                                               \
-    static uint32_t tidx = Object::GetOrAllocRuntimeTypeIndex(                                  \
-        TypeName::_type_key, TypeName::_type_index, ParentType::_GetOrAllocRuntimeTypeIndex(),  \
-        TypeName::_type_child_slots, TypeName::_type_child_slots_can_overflow);                 \
-    return tidx;                                                                                \
+#define CVT_DECLARE_BASE_OBJECT_INFO(TypeName, ParentType)                                     \
+  static_assert(!ParentType::_type_final, "ParentObj marked as final");                        \
+  static uint32_t RuntimeTypeIndex() {                                                         \
+    static_assert(TypeName::_type_child_slots == 0 || ParentType::_type_child_slots == 0 ||    \
+                      TypeName::_type_child_slots < ParentType::_type_child_slots,             \
+                  "Need to set _type_child_slots when parent specifices it.");                 \
+    if (TypeName::_type_index != ::cvt::runtime::TypeIndex::kDynamic) {                        \
+      return TypeName::_type_index;                                                            \
+    }                                                                                          \
+    return _GetOrAllocRuntimeTypeIndex();                                                      \
+  }                                                                                            \
+  static uint32_t _GetOrAllocRuntimeTypeIndex() {                                              \
+    static uint32_t tidx = Object::GetOrAllocRuntimeTypeIndex(                                 \
+        TypeName::_type_key, TypeName::_type_index, ParentType::_GetOrAllocRuntimeTypeIndex(), \
+        TypeName::_type_child_slots, TypeName::_type_child_slots_can_overflow);                \
+    return tidx;                                                                               \
   }
 
 /*!
@@ -413,7 +413,7 @@ struct ObjectPtrEqual {
  */
 #define CVT_DEFINE_NOTNULLABLE_OBJECT_REF_METHODS(TypeName, ParentType, ObjectName)            \
   explicit TypeName(::cvt::runtime::ObjectPtr<::cvt::runtime::Object> n) : ParentType(n) {}    \
-  CVT_DEFINE_DEFAULT_COPY_MOVE_AND_ASSIGN(TypeName)                                           \
+  CVT_DEFINE_DEFAULT_COPY_MOVE_AND_ASSIGN(TypeName)                                            \
   const ObjectName* operator->() const { return static_cast<const ObjectName*>(data_.get()); } \
   const ObjectName* get() const { return operator->(); }                                       \
   static constexpr bool _type_is_nullable = false;                                             \
