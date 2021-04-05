@@ -1,7 +1,3 @@
-//
-// Created by WangJingYu on 2021/1/19.
-//
-
 #ifndef CVT_INCLUDE_CVT_RUNTIME_REGISTRY_H_
 #define CVT_INCLUDE_CVT_RUNTIME_REGISTRY_H_
 

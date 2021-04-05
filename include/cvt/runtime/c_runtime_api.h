@@ -1,7 +1,3 @@
-//
-// Created by WangJingYu on 2021/1/12.
-//
-
 #ifndef CVT_C_RUNTIME_API_H
 #define CVT_C_RUNTIME_API_H
 

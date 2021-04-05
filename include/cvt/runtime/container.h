@@ -1,7 +1,3 @@
-//
-// Created by WangJingYu on 2021/1/12.
-//
-
 #ifndef CVT_CONTAINER_H
 #define CVT_CONTAINER_H
 

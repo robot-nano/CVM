@@ -1,7 +1,3 @@
-//
-// Created by WangJingYu on 2021/1/12.
-//
-
 #ifndef CVT_INCLUDE_SUPPORT_LOGGING_H_
 #define CVT_INCLUDE_SUPPORT_LOGGING_H_
 

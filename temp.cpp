@@ -1,14 +1,11 @@
 #include <cvt/node/container.h>
 
-#include <vector>
-
 using namespace cvt;
 
 int main(int argc, char** argv) {
-  std::vector<std::pair<String, String>> vec;
-  for (int i = 0; i < 255; ++i) {
-    vec.emplace_back(std::to_string(i), std::to_string(i) + "v");
-  }
 
-  Map<String, String> map(vec);
+  Map<ObjectRef, ObjectRef> map({{String("1"), String("v2")}});
+
+  String result = Downcast<String, ObjectRef>((*map.begin()).first);
+  std::cout << result << std::endl;
 }

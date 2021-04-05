@@ -1,7 +1,3 @@
-//
-// Created by WangJingYu on 2021/1/19.
-//
-
 #include <cvt/runtime/registry.h>
 
 #include <mutex>

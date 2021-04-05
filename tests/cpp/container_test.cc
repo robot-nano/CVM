@@ -1,7 +1,3 @@
-//
-// Created by whale on 2021/1/12.
-//
-
 #include <cvt/node/container.h>
 #include <cvt/runtime/container.h>
 #include <gtest/gtest.h>

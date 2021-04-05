@@ -1,7 +1,3 @@
-//
-// Created by WangJingYu on 2021/1/23.
-//
-
 #ifndef CVT_INCLUDE_CVT_RUNTIME_NODE_CONTAINER_H_
 #define CVT_INCLUDE_CVT_RUNTIME_NODE_CONTAINER_H_
 

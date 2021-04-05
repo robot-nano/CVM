@@ -1,7 +1,3 @@
-//
-// Created by whale on 2021/1/16.
-//
-
 #ifndef CVT_INCLUDE_CVT_RUNTIME_MEMORY_H_
 #define CVT_INCLUDE_CVT_RUNTIME_MEMORY_H_
 
