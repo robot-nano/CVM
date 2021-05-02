@@ -1,9 +1,9 @@
-#include <cvt/runtime/registry.h>
+#include <cvm/runtime/registry.h>
 
 #include <mutex>
 #include <unordered_map>
 
-namespace cvt {
+namespace cvm {
 namespace runtime {
 
 struct Registry::Manager {
@@ -34,4 +34,4 @@ Registry& Registry::Register(const std::string& name, bool can_override) {
 }
 
 }  // namespace runtime
-}  // namespace cvt
+}  // namespace cvm

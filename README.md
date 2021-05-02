@@ -1,5 +1,9 @@
-# CVT
-Cpp Common Value Type
+# CVM
+Cpp Virtual Machine
 
-This project tend to make a CPP common value type, so we don't need to care about value type before compile.  
-But this is not a common value type for runtime.
+This is a progress of study virtual machine programmed by CPlusPlus. I will add some  
+study document for others.  
+
+Now this project is study from llvm https://github.com/llvm/llvm-project and tvm https://github.com/apache/tvm.
+
+The docs UML can open by umlet which is a free and multi-platform tool, there is vscode plugin also.

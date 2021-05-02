@@ -1,14 +1,14 @@
-#ifndef CVT_INCLUDE_CVT_RUNTIME_NODE_CONTAINER_H_
-#define CVT_INCLUDE_CVT_RUNTIME_NODE_CONTAINER_H_
+#ifndef CVM_INCLUDE_CVM_RUNTIME_NODE_CONTAINER_H_
+#define CVM_INCLUDE_CVM_RUNTIME_NODE_CONTAINER_H_
 
 #ifndef USE_FALLBACK_STL_MAP
 #define USE_FALLBACK_STL_MAP 1
 #endif
 
-#include <cvt/runtime/container.h>
-#include <cvt/runtime/memory.h>
-#include <cvt/runtime/object.h>
-#include <cvt/runtime/packed_func.h>
+#include <cvm/runtime/container.h>
+#include <cvm/runtime/memory.h>
+#include <cvm/runtime/object.h>
+#include <cvm/runtime/packed_func.h>
 
 #include <algorithm>
 #include <string>
@@ -16,7 +16,7 @@
 #include <utility>
 #include <vector>
 
-namespace cvt {
+namespace cvm {
 
 using runtime::Downcast;
 using runtime::make_object;
@@ -44,7 +44,7 @@ class MapNode : public Object {
 
   static constexpr const uint32_t _type_index = runtime::TypeIndex::kRuntimeMap;
   static constexpr const char* _type_key = "Map";
-  CVT_DECLARE_FINAL_OBJECT_INFO(MapNode, Object);
+  CVM_DECLARE_FINAL_OBJECT_INFO(MapNode, Object);
 
   size_t size() const { return data_.size(); }
 
@@ -250,6 +250,6 @@ inline Map<K, V> Merge(Map<K, V> lhs, const Map<K, V>& rhs) {
   return std::move(lhs);
 }
 
-}  // namespace cvt
+}  // namespace cvm
 
-#endif  // CVT_INCLUDE_CVT_RUNTIME_NODE_CONTAINER_H_
+#endif  // CVM_INCLUDE_CVM_RUNTIME_NODE_CONTAINER_H_

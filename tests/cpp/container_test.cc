@@ -1,11 +1,11 @@
-#include <cvt/node/container.h>
-#include <cvt/runtime/container.h>
+#include <cvm/node/container.h>
+#include <cvm/runtime/container.h>
 #include <gtest/gtest.h>
 
 #include <unordered_map>
 
-using namespace cvt;
-using namespace cvt::runtime;
+using namespace cvm;
+using namespace cvm::runtime;
 
 class TestErrorSwitch {
  public:
@@ -30,7 +30,7 @@ class TestArrayObj : public Object, public InplaceArrayBase<TestArrayObj, TestEr
  public:
   static constexpr const uint32_t _type_index = TypeIndex::kDynamic;
   static constexpr const char* _type_key = "test.TestArrayObj";
-  CVT_DECLARE_FINAL_OBJECT_INFO(TestArrayObj, Object);
+  CVM_DECLARE_FINAL_OBJECT_INFO(TestArrayObj, Object);
   uint32_t size;
 
   size_t GetSize() const { return size; }
@@ -254,7 +254,7 @@ TEST(String, Concat) {
 }
 
 TEST(Map, Iterator) {
-  using namespace cvt;
+  using namespace cvm;
   String s1("s1"), s2("s2");
   Map<String, String> map1{{s1, s2}};
   std::unordered_map<String, String, ObjectPtrHash, ObjectPtrEqual> map2{map1.begin(), map1.end()};

@@ -1,10 +1,10 @@
-#include <cvt/runtime/container.h>
-#include <cvt/runtime/registry.h>
+#include <cvm/runtime/container.h>
+#include <cvm/runtime/registry.h>
 
-namespace cvt {
+namespace cvm {
 namespace runtime {
 
-CVT_REGISTER_GLOBAL("runtime.String");
+CVM_REGISTER_GLOBAL("runtime.String");
 
 }  // namespace runtime
-}  // namespace cvt
+}  // namespace cvm

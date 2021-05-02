@@ -1,13 +1,13 @@
-#ifndef CVT_INCLUDE_CVT_RUNTIME_MEMORY_H_
-#define CVT_INCLUDE_CVT_RUNTIME_MEMORY_H_
+#ifndef CVM_INCLUDE_CVM_RUNTIME_MEMORY_H_
+#define CVM_INCLUDE_CVM_RUNTIME_MEMORY_H_
 
-#include <cvt/runtime/object.h>
+#include <cvm/runtime/object.h>
 
 #include <cstdlib>
 #include <type_traits>
 #include <utility>
 
-namespace cvt {
+namespace cvm {
 namespace runtime {
 
 template <typename Derived>
@@ -102,6 +102,6 @@ inline ObjectPtr<ArrayType> make_inplace_array_object(size_t num_elems, Args&&..
 }
 
 }  // namespace runtime
-}  // namespace cvt
+}  // namespace cvm
 
-#endif  // CVT_INCLUDE_CVT_RUNTIME_MEMORY_H_
+#endif  // CVM_INCLUDE_CVM_RUNTIME_MEMORY_H_

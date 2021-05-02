@@ -1,5 +1,5 @@
-#include <cvt/runtime/object.h>
-#include <cvt/support/logging.h>
+#include <cvm/runtime/object.h>
+#include <cvm/support/logging.h>
 
 #include <iostream>
 #include <mutex>
@@ -7,7 +7,7 @@
 #include <utility>
 #include <vector>
 
-namespace cvt {
+namespace cvm {
 namespace runtime {
 
 struct TypeInfo {
@@ -113,7 +113,7 @@ class TypeContext {
     auto it = type_key2index_.find(skey);
     ICHECK(it != type_key2index_.end())
         << "Cannot find type " << skey
-        << ". Did you forget to register the node by CVT_REGISTER_NODE_TYPE ?";
+        << ". Did you forget to register the node by CVM_REGISTER_NODE_TYPE ?";
     return it->second;
   }
 
@@ -177,4 +177,4 @@ uint32_t Object::TypeKey2Index(const std::string& key) {
 }
 
 }  // namespace runtime
-}  // namespace cvt
+}  // namespace cvm

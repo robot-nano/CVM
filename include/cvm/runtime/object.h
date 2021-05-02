@@ -1,22 +1,22 @@
-#ifndef CVT_INCLUDE_RUNTIME_OBJECT_H_
-#define CVT_INCLUDE_RUNTIME_OBJECT_H_
+#ifndef CVM_INCLUDE_RUNTIME_OBJECT_H_
+#define CVM_INCLUDE_RUNTIME_OBJECT_H_
 
-#include <cvt/runtime/c_runtime_api.h>
-#include <cvt/support/logging.h>
+#include <cvm/runtime/c_runtime_api.h>
+#include <cvm/support/logging.h>
 
 #include <string>
 #include <type_traits>
 #include <utility>
 
-#ifndef CVT_OBJECT_ATOMIC_REF_COUNTER
-#define CVT_OBJECT_ATOMIC_REF_COUNTER 1
+#ifndef CVM_OBJECT_ATOMIC_REF_COUNTER
+#define CVM_OBJECT_ATOMIC_REF_COUNTER 1
 #endif
 
-#if CVT_OBJECT_ATOMIC_REF_COUNTER
+#if CVM_OBJECT_ATOMIC_REF_COUNTER
 #include <atomic>
 #endif
 
-namespace cvt {
+namespace cvm {
 namespace runtime {
 
 struct TypeIndex {
@@ -35,7 +35,7 @@ struct TypeIndex {
   };
 };  // namespace TypeIndex
 
-class CVT_DLL Object {
+class CVM_DLL Object {
  public:
   typedef void (*FDeleter)(Object* self);
 
@@ -54,7 +54,7 @@ class CVT_DLL Object {
 
   static uint32_t TypeKey2Index(const std::string& key);
 
-#if CVT_OBJECT_ATOMIC_REF_COUNTER
+#if CVM_OBJECT_ATOMIC_REF_COUNTER
   using RefCounterType = std::atomic<int32_t>;
 #else
   using RefCounterType = int32_t;
@@ -117,7 +117,7 @@ class CVT_DLL Object {
   friend class ObjAllocatorBase;
   template <typename>
   friend class ObjectPtr;
-  friend class CVTRetValue;
+  friend class CVMRetValue;
   friend class ObjectInternal;
 };  // Object
 
@@ -235,11 +235,11 @@ class ObjectPtr {
   friend class ObjectPtr;
   template <typename>
   friend class ObjAllocatorBase;
-  friend class CVTPODValue_;
-  friend class CVTArgsSetter;
-  friend class CVTRetValue;
-  friend class CVTArgValue;
-  friend class CVTMovableArgValue_;
+  friend class CVMPODValue_;
+  friend class CVMArgsSetter;
+  friend class CVMRetValue;
+  friend class CVMArgValue;
+  friend class CVMMovableArgValue_;
   template <typename RelayRefType, typename ObjType>
   friend RelayRefType GetRef(const ObjType* ptr);
   template <typename BaseType, typename ObjType>
@@ -295,8 +295,8 @@ class ObjectRef {
   }
   // friend classes.
   friend struct ObjectPtrHash;
-  friend class CVTRetValue;
-  friend class CVTArgsSetter;
+  friend class CVMRetValue;
+  friend class CVMArgsSetter;
   friend class ObjectInternal;
   template <typename SubRef, typename BaseRef>
   friend SubRef Downcast(BaseRef ref);
@@ -328,13 +328,13 @@ struct ObjectPtrEqual {
  * \param TypeName The name of the current type.
  * \param ParentType The name of the ParentType
  */
-#define CVT_DECLARE_BASE_OBJECT_INFO(TypeName, ParentType)                                     \
+#define CVM_DECLARE_BASE_OBJECT_INFO(TypeName, ParentType)                                     \
   static_assert(!ParentType::_type_final, "ParentObj marked as final");                        \
   static uint32_t RuntimeTypeIndex() {                                                         \
     static_assert(TypeName::_type_child_slots == 0 || ParentType::_type_child_slots == 0 ||    \
                       TypeName::_type_child_slots < ParentType::_type_child_slots,             \
                   "Need to set _type_child_slots when parent specifices it.");                 \
-    if (TypeName::_type_index != ::cvt::runtime::TypeIndex::kDynamic) {                        \
+    if (TypeName::_type_index != ::cvm::runtime::TypeIndex::kDynamic) {                        \
       return TypeName::_type_index;                                                            \
     }                                                                                          \
     return _GetOrAllocRuntimeTypeIndex();                                                      \
@@ -351,22 +351,22 @@ struct ObjectPtrEqual {
  * \param TypeName The name of the current type.
  * \param ParentType The name of the ParentType.
  */
-#define CVT_DECLARE_FINAL_OBJECT_INFO(TypeName, ParentType) \
+#define CVM_DECLARE_FINAL_OBJECT_INFO(TypeName, ParentType) \
   static const constexpr bool _type_final = true;           \
   static const constexpr int _type_child_slots = 0;         \
-  CVT_DECLARE_BASE_OBJECT_INFO(TypeName, ParentType)
+  CVM_DECLARE_BASE_OBJECT_INFO(TypeName, ParentType)
 
 /*! \brief helper macro to suppress unused warning */
 #if defined(__GNUC__)
-#define CVT_ATTRIBUTE_UNUSED __attribute__((unused))
+#define CVM_ATTRIBUTE_UNUSED __attribute__((unused))
 #else
-#define CVT_ATTRIBUTE_UNUSED
+#define CVM_ATTRIBUTE_UNUSED
 #endif
 
-#define CVT_STR_CONCAT_(__x, __y) __x##__y
-#define CVT_STR_CONCAT(__x, __y) CVT_STR_CONCAT_(__x, __y)
+#define CVM_STR_CONCAT_(__x, __y) __x##__y
+#define CVM_STR_CONCAT(__x, __y) CVM_STR_CONCAT_(__x, __y)
 
-#define CVT_OBJECT_REG_VAR_DEF static CVT_ATTRIBUTE_UNUSED uint32_t __make_object_tid
+#define CVM_OBJECT_REG_VAR_DEF static CVM_ATTRIBUTE_UNUSED uint32_t __make_object_tid
 
 /*!
  * \brief Helper macro to register the object type to runtime.
@@ -374,14 +374,14 @@ struct ObjectPtrEqual {
  *
  * Use this macro in the cc file for each terminal class.
  */
-#define CVT_REGISTER_OBJECT_TYPE(TypeName) \
-  CVT_STR_CONCAT(CVT_OBJECT_REG_VAR_DEF, __COUNTER__) = TypeName::_GetOrAllocRuntimeTypeIndex()
+#define CVM_REGISTER_OBJECT_TYPE(TypeName) \
+  CVM_STR_CONCAT(CVM_OBJECT_REG_VAR_DEF, __COUNTER__) = TypeName::_GetOrAllocRuntimeTypeIndex()
 
 /*!
  * \brief Define the default copy/move constructor and assign operator
  * \param TypeName The class typename.
  * */
-#define CVT_DEFINE_DEFAULT_COPY_MOVE_AND_ASSIGN(TypeName) \
+#define CVM_DEFINE_DEFAULT_COPY_MOVE_AND_ASSIGN(TypeName) \
   TypeName(const TypeName& other) = default;              \
   TypeName(TypeName&& other) = default;                   \
   TypeName& operator=(const TypeName& other) = default;   \
@@ -392,10 +392,10 @@ struct ObjectPtrEqual {
  * \param TypeName The object type name
  * \param
  */
-#define CVT_DEFINE_OBJECT_REF_METHODS(TypeName, ParentType, ObjectName)                        \
+#define CVM_DEFINE_OBJECT_REF_METHODS(TypeName, ParentType, ObjectName)                        \
   TypeName() = default;                                                                        \
-  explicit TypeName(::cvt::runtime::ObjectPtr<::cvt::runtime::Object> n) : ParentType(n) {}    \
-  CVT_DEFINE_DEFAULT_COPY_MOVE_AND_ASSIGN(TypeName);                                           \
+  explicit TypeName(::cvm::runtime::ObjectPtr<::cvm::runtime::Object> n) : ParentType(n) {}    \
+  CVM_DEFINE_DEFAULT_COPY_MOVE_AND_ASSIGN(TypeName);                                           \
   const ObjectName* operator->() const { return static_cast<const ObjectName*>(data_.get()); } \
   const ObjectName* get() const { return operator->(); }                                       \
   using ContainerType = ObjectName;
@@ -407,22 +407,22 @@ struct ObjectPtrEqual {
  * \param ParentType The parent type of the objectRef
  * \param ObjectName The type name of the object.
  */
-#define CVT_DEFINE_NOTNULLABLE_OBJECT_REF_METHODS(TypeName, ParentType, ObjectName)            \
-  explicit TypeName(::cvt::runtime::ObjectPtr<::cvt::runtime::Object> n) : ParentType(n) {}    \
-  CVT_DEFINE_DEFAULT_COPY_MOVE_AND_ASSIGN(TypeName)                                            \
+#define CVM_DEFINE_NOTNULLABLE_OBJECT_REF_METHODS(TypeName, ParentType, ObjectName)            \
+  explicit TypeName(::cvm::runtime::ObjectPtr<::cvm::runtime::Object> n) : ParentType(n) {}    \
+  CVM_DEFINE_DEFAULT_COPY_MOVE_AND_ASSIGN(TypeName)                                            \
   const ObjectName* operator->() const { return static_cast<const ObjectName*>(data_.get()); } \
   const ObjectName* get() const { return operator->(); }                                       \
   static constexpr bool _type_is_nullable = false;                                             \
   using ContainerType = ObjectName;
 
-#define CVT_DEFINE_MUTABLE_OBJECT_REF_METHODS(TypeName, ParentType, ObjectName)             \
+#define CVM_DEFINE_MUTABLE_OBJECT_REF_METHODS(TypeName, ParentType, ObjectName)             \
   TypeName() = default;                                                                     \
-  CVT_DEFINE_DEFAULT_COPY_MOVE_AND_ASSIGN(TypeName);                                        \
-  explicit TypeName(::cvt::runtime::ObjectPtr<::cvt::runtime::Object> n) : ParentType(n) {} \
+  CVM_DEFINE_DEFAULT_COPY_MOVE_AND_ASSIGN(TypeName);                                        \
+  explicit TypeName(::cvm::runtime::ObjectPtr<::cvm::runtime::Object> n) : ParentType(n) {} \
   ObjectName* operator->() const { return static_cast<ObjectName*>(data_.get()); }          \
   using ContainerType = ObjectName;
 
-#define CVT_DEFINE_OBJECT_REF_COW_METHOD(ObjectName)     \
+#define CVM_DEFINE_OBJECT_REF_COW_METHOD(ObjectName)     \
   ObjectName* CopyOnWrite() {                            \
     ICHECK(data_ != nullptr);                            \
     if (!data_.unique()) {                               \
@@ -432,7 +432,7 @@ struct ObjectPtrEqual {
     return static_cast<ObjectName*>(data_.get());        \
   }
 
-#if CVT_OBJECT_ATOMIC_REF_COUNTER
+#if CVM_OBJECT_ATOMIC_REF_COUNTER
 
 inline void Object::IncRef() { ref_counter_.fetch_add(1, std::memory_order_relaxed); }
 
@@ -461,7 +461,7 @@ inline void Object::DecRef() {
 
 inline int Object::use_count() const { return ref_counter_; }
 
-#endif  // CVT_OBJECT_ATOMIC_REF_COUNTER
+#endif  // CVM_OBJECT_ATOMIC_REF_COUNTER
 
 template <typename TargetType>
 inline bool Object::IsInstance() const {
@@ -516,6 +516,6 @@ inline SubRef Downcast(BaseRef ref) {
 }
 
 }  // namespace runtime
-}  // namespace cvt
+}  // namespace cvm
 
-#endif  // CVT_INCLUDE_RUNTIME_OBJECT_H_
+#endif  // CVM_INCLUDE_RUNTIME_OBJECT_H_

@@ -1,5 +1,5 @@
-#ifndef CVT_INCLUDE_SUPPORT_LOGGING_H_
-#define CVT_INCLUDE_SUPPORT_LOGGING_H_
+#ifndef CVM_INCLUDE_SUPPORT_LOGGING_H_
+#define CVM_INCLUDE_SUPPORT_LOGGING_H_
 
 #include <iostream>
 
@@ -17,4 +17,4 @@
 #define ICHECK_EQ(x, y) ICHECK_BINARY_OP(_EQ, ==, x, y)
 #define ICHECK_NE(x, y) ICHECK_BINARY_OP(_NE, !=, x, y)
 
-#endif //CVT_INCLUDE_SUPPORT_LOGGING_H_
+#endif //CVM_INCLUDE_SUPPORT_LOGGING_H_

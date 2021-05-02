@@ -1,13 +1,13 @@
-#ifndef CVT_CONTAINER_H
-#define CVT_CONTAINER_H
+#ifndef CVM_CONTAINER_H
+#define CVM_CONTAINER_H
 
-#include <cvt/runtime/memory.h>
-#include <cvt/runtime/object.h>
+#include <cvm/runtime/memory.h>
+#include <cvm/runtime/object.h>
 
 #include <cstring>
 #include <string>
 
-namespace cvt {
+namespace cvm {
 namespace runtime {
 
 struct ObjectHash {
@@ -134,7 +134,7 @@ class StringObj : public Object {
 
   static constexpr const uint32_t _type_index = TypeIndex::kRuntimeString;
   static constexpr const char* _type_key = "runtime.String";
-  CVT_DECLARE_FINAL_OBJECT_INFO(StringObj, Object);
+  CVM_DECLARE_FINAL_OBJECT_INFO(StringObj, Object);
 
  private:
   class FromStd;
@@ -185,7 +185,7 @@ class String : public ObjectRef {
     if (pos < size()) {
       return data()[pos];
     } else {
-      throw std::out_of_range("cvt::String index out of bounds");
+      throw std::out_of_range("cvm::String index out of bounds");
     }
   }
 
@@ -194,16 +194,16 @@ class String : public ObjectRef {
   operator std::string() const { return std::string(get()->data, size()); }
 
   static size_t HashBytes(const char* data, size_t size) {
-#if CVT_USE_CXX17_STRING_VIEW_HASH
+#if CVM_USE_CXX17_STRING_VIEW_HASH
     return std::hash<std::string_view>()(std::string_view(data, size));
-#elif CVT_USE_CXX14_STRING_VIEW_HASH
+#elif CVM_USE_CXX14_STRING_VIEW_HASH
     return std::hash<std::experimental::string_view>()(std::experimental::string_view(data, size));
 #else
     return std::hash<std::string>()(std::string(data, size));
 #endif
   }
 
-  CVT_DEFINE_NOTNULLABLE_OBJECT_REF_METHODS(String, ObjectRef, StringObj);
+  CVM_DEFINE_NOTNULLABLE_OBJECT_REF_METHODS(String, ObjectRef, StringObj);
 
  private:
   static int memncmp(const char* lhs, const char* rhs, size_t lhs_count, size_t rhs_count);
@@ -221,7 +221,7 @@ class String : public ObjectRef {
   friend String operator+(const String& lhs, const char* rhs);
   friend String operator+(const char* lhs, const String& rhs);
 
-  friend cvt::runtime::ObjectEqual;
+  friend cvm::runtime::ObjectEqual;
 };
 
 class StringObj::FromStd : public StringObj {
@@ -387,17 +387,17 @@ inline bool ObjectEqual::operator()(const ObjectRef& a, const ObjectRef& b) cons
 }
 
 }  // namespace runtime
-}  // namespace cvt
+}  // namespace cvm
 
 namespace std {
 
 template <>
-struct hash<::cvt::runtime::String> {
-  std::size_t operator()(const ::cvt::runtime::String& str) const {
-    return ::cvt::runtime::String::HashBytes(str.data(), str.size());
+struct hash<::cvm::runtime::String> {
+  std::size_t operator()(const ::cvm::runtime::String& str) const {
+    return ::cvm::runtime::String::HashBytes(str.data(), str.size());
   }
 };
 
 }  // namespace std
 
-#endif  // CVT_CONTAINER_H
+#endif  // CVM_CONTAINER_H
