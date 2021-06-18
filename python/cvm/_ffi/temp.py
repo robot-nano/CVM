@@ -1,4 +1,4 @@
-from _cy3.core import hello
+from _cy3.core import test_print
 
-hello()
+test_print()
 

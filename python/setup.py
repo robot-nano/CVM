@@ -28,7 +28,7 @@ def config_cython():
         path = "cvm/_ffi/_cython"
         extra_compile_args = ["-std=c++14"]
         if os.name == "nt":
-            library_dirs = ["cvm", "../build/Release", "../build"]
+            library_dirs = ["cvm", "../cmake-build-debug", "../build/Release", "../build"]
             libraries = ["cvm"]
             extra_compile_args = None
         else:
@@ -42,7 +42,7 @@ def config_cython():
                 Extension(
                     "cvm._ffi.%s.%s" % (subdir, fn[:-4]),
                     ["cvm/_ffi/_cython/%s" % fn],
-                    include_dirs=[],
+                    include_dirs=["../include"],
                     extra_compile_args=extra_compile_args,
                     library_dirs=library_dirs,
                     libraries=libraries,
@@ -62,7 +62,9 @@ class BinaryDistribution(Distribution):
         return False
 
 
-setup_kwargs = {}
+LIB_LIST = ["/hdd/ws/cpp/CVM/cmake-build-debug/libcvm.so"]
+
+setup_kwargs = {"include_package_data": True, "data_files": [("cvm", LIB_LIST)]}
 
 
 __version__ = 0.1

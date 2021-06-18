@@ -1,8 +1,9 @@
-cdef enum CVMArgTypeCode:
-    kInt = 0
-    kUInt = 1
-    kFloat = 2
+cdef extern from "cvm/runtime/c_runtime_api.h":
+    const char *CVMGetPrint()
 
-cdef inline hello():
-    print("hello")
-    return "hello"
+
+cdef cpp_print():
+    CVMGetPrint()
+
+def test_print():
+    cpp_print()
