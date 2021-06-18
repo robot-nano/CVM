@@ -1,4 +1,7 @@
-.idea/
-.vscode/
+*.idea/
+*.vscode/
 cmake-build-*/
-build/
+*build/
+*__pycache__/
+python/cvm/_ffi/_cy3/*.so
+python/cvm/_ffi/_cython/*.cpp
