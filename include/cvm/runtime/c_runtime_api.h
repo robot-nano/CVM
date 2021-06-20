@@ -26,7 +26,7 @@ extern "C" {
 #include <stddef.h>
 #include <stdint.h>
 
-CVM_DLL const char *CVMGetPrint(void);
+CVM_DLL int CVMGetPrint(void);
 
 #ifdef __cplusplus
 }

@@ -5,7 +5,8 @@
 #include <stdio.h>
 #include <cvm/runtime/c_runtime_api.h>
 
-const char *CVMGetPrint(void) {
+extern "C"
+int CVMGetPrint(void) {
   printf("Calling Native\n");
-  return "return native";
+  return 1;
 }

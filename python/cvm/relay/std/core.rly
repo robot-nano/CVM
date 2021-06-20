@@ -19,12 +19,4 @@
 
 #[version = "0.0.5"]
 
-def @id[A](%x: A) -> A {
-    %x
-}
-
-def @compose[A, B, C](%f: fn(B) -> C, %g: fn(A) -> B) {
-    fn (%x: A) -> C {
-        %f(%g(%x))
-    }
-}
+extern type Storage
