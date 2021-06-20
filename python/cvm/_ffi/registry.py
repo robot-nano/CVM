@@ -1,7 +1,5 @@
-from .base import _LIB
-
-from ._cy3.core import test_print
+from .base import _LIB, check_call
 
 
-def printf():
-    test_print()
+def list_global_func_names():
+    check_call(1)

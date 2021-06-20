@@ -1,6 +1,7 @@
 from ..base import get_last_ffi_error
 
 cdef extern from "cvm/runtime/c_runtime_api.h":
+    const char *CVMGetLastError()
     int CVMGetPrint()
 
 cdef inline int CALL(int ret) except -2:
@@ -12,7 +13,7 @@ cdef inline int CALL(int ret) except -2:
     return 0
 
 cdef cpp_print():
-    CALL(CVMGetPrint())
+    return CALL(CVMGetPrint())
 
 def test_print():
-    cpp_print()
+    return cpp_print()

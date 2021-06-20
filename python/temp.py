@@ -1,3 +1,3 @@
-from cvm import printf
+from cvm._ffi.base import check_call
 
-print("")
+check_call(1)
