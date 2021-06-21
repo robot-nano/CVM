@@ -12,7 +12,13 @@ namespace runtime {
 
 class Registry {
  public:
+  CVM_DLL Registry& set_body(PackedFunc f);
+  Registry& set_body(PackedFunc::FType f) {  // NOLINT(*)
+    return set_body(PackedFunc(f));
+  }
   CVM_DLL static Registry& Register(const std::string& name, bool override = false);
+
+  CVM_DLL static const PackedFunc* Get(const std::string& name);
 
   // Internal class.
   struct Manager;
@@ -20,6 +26,7 @@ class Registry {
  protected:
   /*! \brief name of the function */
   std::string name_;
+  PackedFunc func_;
 
   friend struct Manager;
 };

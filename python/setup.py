@@ -82,7 +82,8 @@ def config_cython():
                 Extension(
                     "cvm._ffi.%s.%s" % (subdir, fn[:-4]),
                     ["cvm/_ffi/_cython/%s" % fn],
-                    include_dirs=["../include"],
+                    include_dirs=["../include",
+                                  "../3rdparty/dlpack/include"],
                     extra_compile_args=extra_compile_args,
                     library_dirs=library_dirs,
                     libraries=libraries,

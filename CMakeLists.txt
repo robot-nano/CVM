@@ -3,7 +3,10 @@ project(CVM C CXX)
 
 set(CMAKE_CXX_FLAGS "-std=c++11 -fPIC")
 
-include_directories("include")
+include_directories(
+	include
+	3rdparty/dlpack/include
+)
 
 file(GLOB OBJ_SRCS
 	src/runtime/*.cc

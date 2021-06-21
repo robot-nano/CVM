@@ -1,3 +1,10 @@
-from cvm._ffi.base import check_call
+import cvm._ffi
+from cvm.runtime import Object
 
-check_call(1)
+
+@cvm._ffi.register_object("test.temp")
+class ModularSet(Object):
+    """Represent range of (coeff * x + base) for x in Z"""
+
+    def __init__(self, coeff, base):
+        pass

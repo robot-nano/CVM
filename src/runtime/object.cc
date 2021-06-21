@@ -1,5 +1,9 @@
+#include <cvm/runtime/c_runtime_api.h>
 #include <cvm/runtime/object.h>
 #include <cvm/support/logging.h>
+
+#include "runtime_base.h"
+#include "object_internal.h"
 
 #include <iostream>
 #include <mutex>
@@ -178,3 +182,15 @@ uint32_t Object::TypeKey2Index(const std::string& key) {
 
 }  // namespace runtime
 }  // namespace cvm
+
+int CVMObjectTypeKey2Index(const char* type_key, unsigned* out_tindex) {
+  API_BEGIN();
+  out_tindex[0] = cvm::runtime::ObjectInternal::ObjectTypeKey2Index(type_key);
+  API_END();
+}
+
+int CVMObjectFree(CVMObjectHandle obj) {
+  API_BEGIN();
+
+  API_END();
+}
