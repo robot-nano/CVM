@@ -1,15 +1,16 @@
 #include <cvm/runtime/c_runtime_api.h>
+#include <cvm/runtime/logging.h>
 #include <cvm/runtime/object.h>
-#include <cvm/support/logging.h>
-
-#include "runtime_base.h"
-#include "object_internal.h"
+#include <cvm/runtime/registry.h>
 
 #include <iostream>
 #include <mutex>
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
+#include "object_internal.h"
+#include "runtime_base.h"
 
 namespace cvm {
 namespace runtime {
@@ -179,6 +180,10 @@ size_t Object::TypeIndex2KeyHash(uint32_t tindex) {
 uint32_t Object::TypeKey2Index(const std::string& key) {
   return TypeContext::Global()->TypeKey2Index(key);
 }
+
+//CVM_REGISTER_GLOBAL("runtime.ObjectPtrHash").set_body([](ObjectRef obj) {
+//  return static_cast<int64_t>(ObjectPtrHash()(obj));
+//})
 
 }  // namespace runtime
 }  // namespace cvm

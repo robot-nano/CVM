@@ -10,14 +10,14 @@
 #include <stdexcept>
 
 #define API_BEGIN() try {
-#define API_END()                           \
-  }                                         \
-  catch (std::exception & _except_) {       \
-    return -2;                              \
-  }                                         \
-  catch (std::exception & _except_) {       \
-    return CVMAPIHandleException(_except_); \
-  }                                         \
+#define API_END()                                       \
+  }                                                     \
+  catch (cvm::runtime::EnvErrorAlreadySet & _except_) { \
+    return -2;                                          \
+  }                                                     \
+  catch (std::exception & _except_) {                   \
+    return CVMAPIHandleException(_except_);             \
+  }                                                     \
   return 0;  // NOLINT(*)
 
 int CVMAPIHandleException(const std::exception& e);

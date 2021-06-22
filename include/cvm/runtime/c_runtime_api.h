@@ -48,6 +48,15 @@ typedef enum {
   kCVMOpaqueHandle = 3U,
   kCVMNullptr = 4U,
   kCVMDataType = 5U,
+  kDLDevice = 6U,
+  kCVMDLTensorHandle = 7U,
+  kCVMObjectHandle = 8U,
+  kCVMModuleHandle = 9U,
+  kCVMPackedFuncHandle = 10U,
+  kCVMStr = 11U,
+  kCVMBytes = 12U,
+  kCVMNDArrayHandle = 13U,
+  kCVMObjectRValueRefArg = 14U
 } CVMArgTypeCode;
 
 typedef DLTensor* CVMArrayHandle;

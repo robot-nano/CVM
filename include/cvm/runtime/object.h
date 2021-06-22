@@ -2,7 +2,7 @@
 #define CVM_INCLUDE_RUNTIME_OBJECT_H_
 
 #include <cvm/runtime/c_runtime_api.h>
-#include <cvm/support/logging.h>
+#include <cvm/runtime/logging.h>
 
 #include <string>
 #include <type_traits>
@@ -23,12 +23,19 @@ struct TypeIndex {
   enum {
     /*! \brief Root object type. */
     kRoot = 0,
+    /*! \brief runtime::Module. */
+    kRuntimeModule = 1,
+    /*! \brief runtime::NDArray */
+    kRuntimeNDArray = 2,
     /*! \brief runtime::String. */
-    kRuntimeString = 1,
-    /*! \brief runtime::Vector. */
-    kRuntimeVector = 2,
+    kRuntimeString = 3,
+    /*! \brief runtime::Array. */
+    kRuntimeArray = 4,
     /*! \brief runtime::Map. */
-    kRuntimeMap = 3,
+    kRuntimeMap = 5,
+    // static assignments that may subject to change.
+    kRuntimeClosure,
+    kRuntimeADT,
     kStaticIndexEnd,
     /*! \brief Type index is allocated during runtime. */
     kDynamic = kStaticIndexEnd

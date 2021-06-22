@@ -11,7 +11,7 @@ namespace runtime {
 class ObjectInternal {
  public:
   static uint32_t ObjectTypeKey2Index(const std::string& type_key) {
-
+    return 0;
   }
 };
 
