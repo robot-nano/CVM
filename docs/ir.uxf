@@ -1,0 +1,703 @@
+<?xml version="1.0" encoding="UTF-8"?><diagram program="umlet" version="13.3">
+  <help_text>Space for diagram notes</help_text>
+  <zoom_level>10</zoom_level>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1650</x>
+      <y>240</y>
+      <w>100</w>
+      <h>30</h>
+    </coordinates>
+    <panel_attributes>Object</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1530</x>
+      <y>510</y>
+      <w>330</w>
+      <h>130</h>
+    </coordinates>
+    <panel_attributes>BaseExprNode
+--
+_+ _type_key : constexpr const char*_
+_+ _type_has_method_sequal_reduce : constexpr const bool_
+_+ _type_has_method_shash_reduce : constexpr const bool_
+_+ _type_child_slots : constexpr const uint32_t_
+
+--
+TVM_DECLARE_BASE_OBJECT_INFO</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1690</x>
+      <y>260</y>
+      <w>30</w>
+      <h>270</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;-</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;250.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>4560</x>
+      <y>170</y>
+      <w>100</w>
+      <h>30</h>
+    </coordinates>
+    <panel_attributes>ObjectRef</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>4490</x>
+      <y>460</y>
+      <w>240</w>
+      <h>60</h>
+    </coordinates>
+    <panel_attributes>BaseExpr
+--
+--
+TVM_DEFINE_OBJECT_REF_METHODS</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>4600</x>
+      <y>190</y>
+      <w>30</w>
+      <h>290</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;-</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;270.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1280</x>
+      <y>840</y>
+      <w>330</w>
+      <h>120</h>
+    </coordinates>
+    <panel_attributes>PrimExprNode
+--
++ dtype : DataType
+_+ _type_key : constexpr const char*_
+_+ _type_child_slots : constexpr const uint32_t_
+
+--
+TVM_DECLARE_BASE_OBJECT_INFO</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1450</x>
+      <y>630</y>
+      <w>260</w>
+      <h>230</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;-</panel_attributes>
+    <additional_attributes>240.0;10.0;10.0;210.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>4110</x>
+      <y>820</y>
+      <w>530</w>
+      <h>170</h>
+    </coordinates>
+    <panel_attributes>primExpr
+--
+- friend struct runtime:PackedFuncValueConverter&lt;PrimExpr&gt;
+--
++ TVM_DLL PrimExpr(value:int32_t) &lt;&lt;constructor&gt;&gt;
++ TVM_DLL PrimExpr(value:float) &lt;&lt;constructor&gt;&gt;
++ dtype() const : DataType
+
+TVM_DEFINE_OBJECT_REF_METHODS(PrimExpr, BaseExpr, PrimExprNode)
+
+_- TVM_DLL FromObject_(ref:ObjectRef) : PrimExpr_</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>4320</x>
+      <y>510</y>
+      <w>320</w>
+      <h>330</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;-</panel_attributes>
+    <additional_attributes>300.0;10.0;10.0;310.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1750</x>
+      <y>840</y>
+      <w>340</w>
+      <h>190</h>
+    </coordinates>
+    <panel_attributes>RelayExprNode
+--
++ span : mutable Span
++ checked_type_ : mutable Type
+_+ _type_key : constexpr const char*_
+_+ _type_child_slots : constexpr const uint32_t_
+--
++ checked_type() const : inline const Type&amp;
+template&lt;typename TTtypeNode&gt;
++ type_as() const : inline const TTypeNode*
+
+TVM_DECLARE_BASE_OBJECT_INFO</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1670</x>
+      <y>630</y>
+      <w>240</w>
+      <h>230</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;-</panel_attributes>
+    <additional_attributes>10.0;10.0;220.0;210.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>4680</x>
+      <y>820</y>
+      <w>540</w>
+      <h>70</h>
+    </coordinates>
+    <panel_attributes>RelayExpr
+--
+
+TVM_DEFINE_OBJECT_REF_METHOD(RelayExpr, BaseExpr, RelayExprNode)</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>4610</x>
+      <y>510</y>
+      <w>260</w>
+      <h>330</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;-</panel_attributes>
+    <additional_attributes>10.0;10.0;240.0;310.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1660</x>
+      <y>1120</y>
+      <w>530</w>
+      <h>190</h>
+    </coordinates>
+    <panel_attributes>GlobalVarNode
+--
++ name_hint : String
+_+ _type_key : constexpr const char* = "GlobalVar"_
+--
++ VisitAttrs(v:AttrVisitor*)
++ SEqual(other:const GlobalVarNode*, equal:SEqualReducer) const : bool
++ SHashReduce(hash_reduce:SHashReducer) const
+
+TVM_DECLARE_FINAL_OBJECT_INFO(GlobalVarNode, RelayExprNode)</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1870</x>
+      <y>1020</y>
+      <w>30</w>
+      <h>120</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;-</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;100.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>5090</x>
+      <y>250</y>
+      <w>610</w>
+      <h>500</h>
+    </coordinates>
+    <panel_attributes>String
+--
+
+--
++ String() &lt;&lt;constructor&gt;&gt;
++ String(other:std::string) &lt;&lt;constructor&gt;&gt;
++ String(other:const char*)
++ operator=(other:std::string) : String &amp;
++ operator=(other:const char*) : String &amp;
++ compare(other:const String&amp;) : int
++ compare(other:const std::string&amp;) const : int
++ compare(other:const char*) const : int
++ c_str() const : const char*
++ size() const : size_t
++ length() const : size_t
++ empty() const : bool
++ data() const : const char*
++ operator std::string() const 
++ operator llvm::StringRef() const
+_+ inline CanConvertFrom(val:const TVMArgValue&amp;) : bool_
+_+ HashBytes(data:const char*, size:size_t) : size_t_
+
+TVM_DEFINE_NOTNULLABLE_OBJECT_REF_METHOD(String, ObjectRef, StringObj)
+
+_- memncmp(lhs:const char*, rhs:const char*, lhs_count:size_t,rhs_count:size_t) : int_
+_- Concat(lhs:const char*, lhs_size:size_t, rhs:const char*, rhs_size:size_t) : String_
+- operator+(lhs:const String&amp;, rhs:const String&amp;) : friend String
+- operator+(lhs:const String&amp;, rhs:const std:;string&amp;) : friend String
+- operator+(lhs:const std::string&amp;, rhs:String&amp;) : friend String
+- operator+(lhs:const String&amp;, rhs:const char*) : friend String
+- operator+(lhs:const char*, rhs:const String&amp;) : friend String
+friend struct tvm::runtime::ObjectEqual</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>4600</x>
+      <y>190</y>
+      <w>510</w>
+      <h>100</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;-</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;80.0;490.0;80.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1910</x>
+      <y>320</y>
+      <w>510</w>
+      <h>180</h>
+    </coordinates>
+    <panel_attributes>StringObj
+--
++ data : const char*
++ size : uint64_t
+_+_type_index : constexpr const uint32_t = TypeIndex::kRuntimeString_
+_+_type_key : constexpr const char* = "runtime.String"_
+
+TVM_DECLARE_FINAL_OBJECT_INFO(StringObj, Object)
+
+- class FromStd
+- friend class String</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1690</x>
+      <y>260</y>
+      <w>240</w>
+      <h>90</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;-</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;70.0;220.0;70.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>2120</x>
+      <y>490</y>
+      <w>40</w>
+      <h>650</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;.</panel_attributes>
+    <additional_attributes>20.0;10.0;10.0;630.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>4700</x>
+      <y>1090</y>
+      <w>540</w>
+      <h>90</h>
+    </coordinates>
+    <panel_attributes>GlobalVar
+--
+GlobalVar(name_hint:String) &lt;&lt;constructor&gt;&gt;
+
+TVM_DEFINE_OBJECT_REF_METHODS(GlobalVar, RelayExpr, GlobalVarNode)</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>4940</x>
+      <y>880</y>
+      <w>30</w>
+      <h>230</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;-</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;210.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1210</x>
+      <y>1340</y>
+      <w>550</w>
+      <h>150</h>
+    </coordinates>
+    <panel_attributes>IntImmNode
+--
++ value : int64_t
+_+ _type_key : constexpr const char* = "IntImm"_
+--
++ VisitAttrs(v:AttrVisitor*)
++ SEqualReduce(other:const IntImmNode*, equal:SEqualReducer) const : bool
++ SHashReduce(hash_reduce:SHashReducer) const 
+
+TVM_DECLARE_FINAL_OBJECT_INFO(IntImmNode, PrimExprNode)</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1430</x>
+      <y>950</y>
+      <w>30</w>
+      <h>410</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;-</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;390.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>4220</x>
+      <y>1320</y>
+      <w>490</w>
+      <h>90</h>
+    </coordinates>
+    <panel_attributes>IntImm
+--
+--
+IntImm(dtype:DataType, value:int64_t) &lt;&lt;constructor&gt;&gt;
+
+TVM_DEFINE_OBJECT_REF_METHOD(IntImm, PrimExpr, IntImmNode)</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>4350</x>
+      <y>980</y>
+      <w>120</w>
+      <h>360</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;-</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;120.0;100.0;120.0;100.0;340.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>570</x>
+      <y>1340</y>
+      <w>590</w>
+      <h>150</h>
+    </coordinates>
+    <panel_attributes>FloatImmNode
+--
++ value : double
+_+ _type_key : constexpr const char* = "FloatImm"_
+--
++ VisitAttrs(v:AttrVisitor*)
++ SEqualReduce(other:const FloatImmNode*, equal:SEqualReducer) const : bool
++ SHashReduce(hash_reduce:SHashReducer) const 
+
+TVM_DECLARE_FINAL_OBJECT_INFO(FloatImmNode, PrimExprNode)</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>930</x>
+      <y>950</y>
+      <w>530</w>
+      <h>410</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;-</panel_attributes>
+    <additional_attributes>510.0;10.0;510.0;130.0;10.0;130.0;10.0;390.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>3690</x>
+      <y>1310</y>
+      <w>490</w>
+      <h>90</h>
+    </coordinates>
+    <panel_attributes>FloatImm
+--
+--
+FloatImm(dtype:DataType, value:double) &lt;&lt;constructor&gt;&gt;
+
+TVM_DEFINE_OBJECT_REF_METHOD(IntImm, PrimExpr, IntImmNode)</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>3930</x>
+      <y>980</y>
+      <w>450</w>
+      <h>350</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;-</panel_attributes>
+    <additional_attributes>430.0;10.0;430.0;120.0;10.0;120.0;10.0;330.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>4490</x>
+      <y>1600</y>
+      <w>590</w>
+      <h>120</h>
+    </coordinates>
+    <panel_attributes>Bool
+--
+--
++ Bool(bool value) &lt;&lt;constructor&gt;&gt;
++ operator !() const : Bool
++ operator bool() const 
+
+TVM_DEFINE_NOTNULLABLE_OBJECT_REF_METHODS(Bool, IntImm, IntImmNode)</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>4440</x>
+      <y>1400</y>
+      <w>340</w>
+      <h>220</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;-</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;100.0;320.0;100.0;320.0;200.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>4050</x>
+      <y>1600</y>
+      <w>410</w>
+      <h>240</h>
+    </coordinates>
+    <panel_attributes>Integer
+--
+--
++ Integer() &lt;&lt;constructor&gt;&gt;
++ Integer(node:ObjectPtr&lt;Object&gt; node) &lt;&lt;constructor&gt;&gt;
++ Integer(int value)  &lt;&lt;constructor&gt;&gt;
++ Integer(other IntImm)  &lt;&lt;constructor&gt;&gt;
+template&lt;typename Enum, typename=
++ Integer(value:Enum)
++ operator=(other:const IntImm&amp;)
++ operator int64_t() const
++ operator==(other:int) : Bool
++ operator!=(other:int) : Bool
++ operator==(other:Enum) : Bool
++ operator!=(other:Enum) : Bool
+</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>4270</x>
+      <y>1400</y>
+      <w>200</w>
+      <h>220</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;-</panel_attributes>
+    <additional_attributes>180.0;10.0;180.0;100.0;10.0;100.0;10.0;200.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>740</x>
+      <y>320</y>
+      <w>560</w>
+      <h>230</h>
+    </coordinates>
+    <panel_attributes>RangeNode
+--
++ min:PrimExpr
++ extent:PrimExpr
+_+ _type_key:constexpr const char* = "Range"_
+_+ _type_has_method_sequal_reduce:constexpr const bool = true_
+_+ _type_has_method_shash_reduce:constexpr const bool = true_
+--
+RangeNode() &lt;&lt;constructor&gt;&gt;
+RangeNode(min:PrimExpr,extent:PrimExpr)
++ VisitAttrs(v:AttrVisitor*)
++ SEqualReduce(other:const RangeNode*,equal:SEqualReducer) const : bool
++ SHashReduce(hash_reduce:SHashReducer) const
+
+TVM_DECLARE_FINAL_OBJECT_INFO(RangeNode, Object)</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1290</x>
+      <y>350</y>
+      <w>2840</w>
+      <h>510</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;.</panel_attributes>
+    <additional_attributes>2820.0;480.0;1300.0;490.0;1300.0;420.0;40.0;420.0;40.0;10.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>3930</x>
+      <y>260</y>
+      <w>500</w>
+      <h>130</h>
+    </coordinates>
+    <panel_attributes>Range
+--
+--
+Range(begin:PrimExpr, end:PrimExpr) &lt;&lt;constructor&gt;&gt;
+_+ FromMinExtent(min:PrimExpr, extent:PrimExpr) : Range_
+
+TVM_DEFINE_OBJECT_REF_METHODS(Range, ObjectRef, RangeNode)</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1290</x>
+      <y>260</y>
+      <w>430</w>
+      <h>90</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;-</panel_attributes>
+    <additional_attributes>410.0;10.0;410.0;70.0;10.0;70.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>4420</x>
+      <y>190</y>
+      <w>210</w>
+      <h>100</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;-</panel_attributes>
+    <additional_attributes>190.0;10.0;190.0;80.0;10.0;80.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>0</x>
+      <y>320</y>
+      <w>690</w>
+      <h>600</h>
+    </coordinates>
+    <panel_attributes>IRModuleNode
+--
++ functions : Map&lt;GlobalVar, BaseFunc&gt;
++ type_definitions : Map&lt;GbalTypeVar, TypeData&gt;
+_+ _type_key : constexpr const char* = "IRModule"_
+_+ _type_has_method_sequal_reduce : constexpr const bool = true_
+_+ _type_has_method_shash_reduce : constexpr const bool = true_
+--
++ IRModule() &lt;&lt;constructor&gt;&gt;
++ VisitAttrs(v:AttrVisitor*)
++ SEqualReduce(other:const IRModuleNode*, equal:SEqualReducer) const : bool
++ SHashReduce(hash_reduce:SHashReducer) const
++ Add(var:const GlobalVar&amp;, func:const BaseFunc&amp;, update:bool=false)
++ AddUnchecked(var:const GlobalVar&amp;, func:const BaseFunc&amp;)
++ AddTypeDef(var:const GlobalTypevar&amp;, type:const TypeData&amp;, update:bool=false)
++ AddTypeDefUnchecked(var:const GlobalTypeVar&amp;, type:const TypeData&amp;, update:bool=false)
++ Update(var:const GlobalVar&amp;, func:const BaseFunc&amp;)
++ UpdateTypeDef(var:const GlobalTypeVar&amp;, type:const TypeData&amp;)
++ Remove(var:const GlobalVar&amp;)
++ ContainGlobalVar(name:const String&amp;) const : bool
++ ContainGlobalTypeVar(name:const String&amp;) const : bool
++ GetGlobalVar(str:const String&amp;) const : GlobalVar
++ GetGlobalVars() const : Array&lt;GlobalVar&gt;
++ GetGlobalTypeVar(str:const String&amp;) const : GlobalTypeVar
++ GetGlobalTypeVars() const : Array&lt;GlobalTypeVar&gt;
++ GetConstructor(adt:const String&amp;, cons: const String&amp;) const : Constructor
++ Lookup(var: const GlobalVar&amp;) const : BaseFunc
++ Lookup(name:const String&amp;) const : BaseFunc
++ LookupTypeDef(var:const GlobalTypeVar&amp;) const : TypeData
++ LookupTypeDef(var:const String&amp;) const 
++ LookupTag(tag:const int32_t) : Constructor
++ Update(other:const IRModule&amp;)
++ Import(path:const String&amp;)
++ ImportFromStd(path:const String&amp;)
++ Imports() const : std::unordered_set&lt;String&gt;
+
+TVM_DECLARE_FINAL_OBJECT_INFO(IRModuleNode, Object)</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>310</x>
+      <y>240</y>
+      <w>1360</w>
+      <h>100</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;-</panel_attributes>
+    <additional_attributes>1340.0;10.0;10.0;10.0;10.0;80.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>3150</x>
+      <y>260</y>
+      <w>730</w>
+      <h>220</h>
+    </coordinates>
+    <panel_attributes>IRModule
+--
+_+ _type_is_nullable = false : constexpr bool_
+--
+IRModule(functions:Map&lt;GlobalVar,BaseFunc&gt;,type_definitions={}:Map&lt;GlobalTypeVar,TypeData&gt;
+         ,import_set={}:std::unordered_set&lt;String&gt;) &lt;&lt;constructor&gt;&gt;
+IRModule() &lt;&lt;constructor&gt;&gt;
+IRModule(n:ObjectPtr&lt;Object&gt;)
++ operator-&gt;() const : IRModuleNode*
++ FromExpr(expr:const RelayExpr&amp;, global_funcs={}:const Map&lt;GlobalVar,BaseFunc&gt;&amp;
+           type_definitions={}:const Map&lt;GlobalTypeVar,TypeData&gt;&amp;)
+_+ FromText(text:const String&amp;, source_path:const String&amp;) : IRModule_
+
+TVM_DEFINE_OBJECT_REF_COW_METHOD(IRModuleNode)</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>3510</x>
+      <y>170</y>
+      <w>1070</w>
+      <h>110</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;-</panel_attributes>
+    <additional_attributes>1050.0;10.0;10.0;10.0;10.0;90.0</additional_attributes>
+  </element>
+</diagram>
