@@ -37,6 +37,10 @@ class PackedFunc {
   template <typename... Args>
   inline CVMRetValue operator()(Args&&... args);
 
+  inline void CallPacked(CVMArgs args, CVMRetValue* rv) const;
+
+  inline FType body() const;
+
   bool operator==(std::nullptr_t null) const { return body_ == nullptr; }
   bool operator!=(std::nullptr_t null) const { return body_ != nullptr; }
 
@@ -116,7 +120,7 @@ class TypedPackedFunc<R(Args...)> {
   }
 
   TSelf& operator=(PackedFunc packed) {  // NOLINT
-    packed_ = packed;
+    packed_ = std::move(packed);
     return *this;
   }
 
@@ -142,16 +146,16 @@ class TypedPackedFunc<R(Args...)> {
 
 class CVMArgs {
  public:
+  const CVMValue* values;
+  const int* type_codes;
+  int num_args;
+
   CVMArgs(const CVMValue* values, const int* type_codes, int num_args)
       : values(values), type_codes(type_codes), num_args(num_args) {}
 
   inline int size() const;
 
   inline CVMArgValue operator[](int i) const;
-
-  const CVMValue* values;
-  const int* type_codes;
-  int num_args;
 };
 
 inline const char* ArgTypeCode2Str(int type_code);
@@ -186,7 +190,7 @@ struct ObjectTypeChecker {
 };
 
 template <typename T>
-struct ObjectTypeChecker<Array>
+struct ObjectTypeChecker<Array<T>> {};
 
 class CVMPODValue_ {
  public:
@@ -261,6 +265,8 @@ class CVMPODValue_ {
   inline TObjectRef AsObjectRef() const;
 
  protected:
+  friend class CVMArgsSetter;
+  friend class CVMRetValue;
   CVMPODValue_() : type_code_(kCVMNullptr) {}
   CVMPODValue_(CVMValue value, int type_code) : value_(value), type_code_(type_code) {}
   CVMValue value_;
@@ -269,16 +275,86 @@ class CVMPODValue_ {
 
 class CVMArgValue : public CVMPODValue_ {
  public:
+  CVMArgValue() = default;
+  CVMArgValue(CVMValue value, int type_code) : CVMPODValue_(value, type_code) {}
+  // reuse converter from parent
+  using CVMPODValue_::operator double;
+  using CVMPODValue_::operator int64_t;
+  using CVMPODValue_::operator uint64_t;
+  using CVMPODValue_::operator int;
+  using CVMPODValue_::operator bool;
+  using CVMPODValue_::operator void*;
+  using CVMPODValue_::operator DLTensor*;
+  using CVMPODValue_::operator NDArray;
+  using CVMPODValue_::operator Device;
+  using CVMPODValue_::operator Module;
+  using CVMPODValue_::AsObjectRef;
+  using CVMPODValue_::IsObjectRef;
+
+  // conversion operator.
+  operator std::string() const {  // NOLINT
+    if (type_code_ == kCVMDataType) {
+      return DLDataType2String(operator DLDataType());
+    } else if (type_code_ == kCVMBytes) {
+      CVMByteArray* arr = static_cast<CVMByteArray*>(value_.v_handle);
+      return std::string(arr->data, arr->size);
+    } else if (type_code_ == kCVMStr) {
+      return std::string(value_.v_str);
+    } else {
+      ICHECK(IsObjectRef<cvm::runtime::String>())
+          << "Could not convert CVM object of type " << runtime::Object::TypeIndex2Key(type_code_)
+          << " to a string.";
+      return AsObjectRef<cvm::runtime::String>().operator std::string();
+    }
+  }
   operator PackedFunc() const {  // NOLINT
     if (type_code_ == kCVMNullptr) return PackedFunc();
     CVM_CHECK_TYPE_CODE(type_code_, kCVMPackedFuncHandle);
     return *ptr<PackedFunc>();
   }
+  template <typename FType>
+  operator TypedPackedFunc<FType>() const {  // NOLINT
+    return TypedPackedFunc<FType>(operator PackedFunc());
+  }
+  const CVMValue& value() const { return value_; }
+
+  template <typename T, typename = typename std::enable_if<std::is_class<T>::value>::type>
+  inline operator T() const;           // NOLINT
+  inline operator DLDataType() const;  // NOLINT
+  inline operator DataType() const;    // NOLINT
 };
 
 class CVMMovableArgValue_ : public CVMPODValue_ {
  public:
   CVMMovableArgValue_(CVMValue value, int type_code) : CVMPODValue_(value, type_code) {}
+  // reuse converter from parent
+  using CVMPODValue_::operator double;
+  using CVMPODValue_::operator int64_t;
+  using CVMPODValue_::operator uint64_t;
+  using CVMPODValue_::operator int;
+  using CVMPODValue_::operator bool;
+  using CVMPODValue_::operator void*;
+  using CVMPODValue_::operator DLTensor*;
+  using CVMPODValue_::operator NDArray;
+  using CVMPODValue_::operator Device;
+  using CVMPODValue_::operator Module;
+  // reuse conversion rule from ArgValue.
+  operator std::string() const { return AsArgValue().operator std::string(); }  // NOLINT
+  operator PackedFunc() const { return AsArgValue().operator PackedFunc(); }    // NOLINT
+  template <typename FType>
+  operator TypedPackedFunc<FType>() const {  // NOLINT
+    return TypedPackedFunc<FType>(operator PackedFunc());
+  }
+  operator DLDataType() const { return AsArgValue().operator DLDataType(); }  // NOLINT
+  operator DataType() const { return AsArgValue().operator DataType(); }      // NOLINT
+  operator CVMArgValue() const { return AsArgValue(); }                       // NOLINT
+
+  template <typename T,
+            typename = typename std::enable_if<std::is_base_of<ObjectRef, T>::value>::type>
+  inline operator T() const;  // NOLINT
+
+ private:
+  CVMArgValue AsArgValue() const { return CVMArgValue(value_, type_code_); }
 };
 
 class CVMMovableArgValueWithContext_ {
@@ -308,7 +384,45 @@ class CVMRetValue : public CVMPODValue_ {
  public:
   CVMRetValue() = default;
 
-  operator PackedFunc() const {  // NOLINT
+  CVMRetValue(CVMRetValue&& other) : CVMPODValue_(other.value_, other.type_code_) {
+    other.value_.v_handle = nullptr;
+    other.type_code_ = kCVMNullptr;
+  }
+  ~CVMRetValue() { this->Clear(); }
+  // reuse converter from parent
+  using CVMPODValue_::operator double;
+  using CVMPODValue_::operator int64_t;
+  using CVMPODValue_::operator uint64_t;
+  using CVMPODValue_::operator int;
+  using CVMPODValue_::operator bool;
+  using CVMPODValue_::operator void*;
+  using CVMPODValue_::operator DLTensor*;
+  using CVMPODValue_::operator Device;
+  using CVMPODValue_::operator NDArray;
+  using CVMPODValue_::operator Module;
+  using CVMPODValue_::AsObjectRef;
+  using CVMPODValue_::IsObjectRef;
+
+  CVMRetValue(const CVMRetValue& other) : CVMPODValue_() { this->Assign(other); }
+  // conversion operators
+  operator std::string() const {  // NOLINT
+    if (type_code_ == kCVMDataType) {
+      return DLDataType2String(operator DLDataType());
+    } else if (type_code_ == kCVMBytes) {
+      return *ptr<std::string>();
+    }
+    CVM_CHECK_TYPE_CODE(type_code_, kCVMStr);
+    return *ptr<std::string>();
+  }
+  operator DLDataType() const {  // NOLINT
+    if (type_code_ == kCVMStr) {
+      return String2DLDataType(operator std::string());
+    }
+    CVM_CHECK_TYPE_CODE(type_code_, kCVMDataType);
+    return value_.v_type;
+  }
+  operator DataType() const { return DataType(operator DLDataType()); }  // NOLINT
+  operator PackedFunc() const {                                          // NOLINT
     if (type_code_ == kCVMNullptr) return PackedFunc();
     CVM_CHECK_TYPE_CODE(type_code_, kCVMPackedFuncHandle);
     return *ptr<PackedFunc>();
@@ -316,6 +430,242 @@ class CVMRetValue : public CVMPODValue_ {
   template <typename FType>
   operator TypedPackedFunc<FType>() const {  // NOLINT
     return TypedPackedFunc<FType>(operator PackedFunc());
+  }
+  // Assign operators
+  CVMRetValue& operator=(CVMRetValue&& other) {
+    this->Clear();
+    value_ = other.value_;
+    type_code_ = other.type_code_;
+    other.type_code_ = kCVMNullptr;
+    return *this;
+  }
+  CVMRetValue& operator=(double value) {
+    this->SwitchToPOD(kDLFloat);
+    value_.v_float64 = value;
+    return *this;
+  }
+  CVMRetValue& operator=(std::nullptr_t value) {
+    this->SwitchToPOD(kCVMNullptr);
+    value_.v_handle = value;
+    return *this;
+  }
+  CVMRetValue& operator=(void* value) {
+    this->SwitchToPOD(kCVMOpaqueHandle);
+    value_.v_handle = value;
+    return *this;
+  }
+  CVMRetValue& operator=(int64_t value) {
+    this->SwitchToPOD(kDLInt);
+    value_.v_int64 = value;
+    return *this;
+  }
+  CVMRetValue& operator=(int value) {
+    this->SwitchToPOD(kDLInt);
+    value_.v_int64 = value;
+    return *this;
+  }
+  CVMRetValue& operator=(DLDevice value) {
+    this->SwitchToPOD(kDLDevice);
+    value_.v_device = value;
+    return *this;
+  }
+  CVMRetValue& operator=(DLDataType t) {
+    this->SwitchToPOD(kCVMDataType);
+    value_.v_type = t;
+    return *this;
+  }
+  CVMRetValue& operator=(const DataType& other) { return operator=(other.operator DLDataType()); }
+  CVMRetValue& operator=(bool value) {
+    this->SwitchToPOD(kDLInt);
+    value_.v_int64 = value;
+    return *this;
+  }
+  CVMRetValue& operator=(std::string value) {
+    this->SwitchToClass(kCVMStr, std::move(value));
+    return *this;
+  }
+  CVMRetValue& operator=(CVMByteArray value) {
+    this->SwitchToClass(kCVMStr, value);
+    return *this;
+  }
+  CVMRetValue& operator=(NDArray other) {
+    if (other.data_ != nullptr) {
+      this->Clear();
+      type_code_ = kCVMNDArrayHandle;
+      value_.v_handle = NDArray::FFIGetHandle(other);
+      ObjectRef::FFIClearAfterMove(&other);
+    } else {
+      SwitchToPOD(kCVMNullptr);
+    }
+    return *this;
+  }
+  CVMRetValue& operator=(Module m) {
+    SwitchToObject(kCVMModuleHandle, std::move(m.data_));
+    return *this;
+  }
+  CVMRetValue& operator=(PackedFunc f) {
+    if (f == nullptr) {
+      this->SwitchToPOD(kCVMNullptr);
+    } else {
+      this->SwitchToClass(kCVMPackedFuncHandle, f);
+    }
+    return *this;
+  }
+  template <typename FType>
+  CVMRetValue& operator=(const TypedPackedFunc<FType>& f) {
+    return operator=(f.packed());
+  }
+  CVMRetValue& operator=(const CVMRetValue& other) {
+    this->Assign(other);
+    return *this;
+  }
+  CVMRetValue& operator=(const CVMArgValue& other) {
+    this->Assign(other);
+    return *this;
+  }
+  CVMRetValue& operator=(CVMMovableArgValue_&& other) {
+    this->Assign(other);
+    return *this;
+  }
+  /*!
+   * \brief Move the value back to front-end via C API.
+   *    This marks the current container as null.
+   *    The managed resources are moved to the front-end.
+   *    The front end should take charge in managing them.
+   *
+   * \param ret_value The return value.
+   * \param ret_type_code The return type code.
+   */
+  void MoveToCHost(CVMValue* ret_value, int* ret_type_code) {
+    // cannot move str; need specially handle.
+    ICHECK(type_code_ != kCVMStr && type_code_ != kCVMBytes);
+    *ret_value = value_;
+    *ret_type_code = type_code_;
+    type_code_ = kCVMNullptr;
+  }
+  /*!
+   * \brief Construct a new CVMRetValue by
+   *    moving from return value stored via C API.
+   * \param value the value
+   * \param type_code The type code.
+   * \return The created CVMRetValue.
+   */
+  static CVMRetValue MoveFromCHost(CVMValue value, int type_code) {
+    // Can move POD and everything under the object system.
+    ICHECK(type_code <= kCVMPackedFuncHandle || type_code == kCVMNDArrayHandle);
+    CVMRetValue ret;
+    ret.value_ = value;
+    ret.type_code_ = type_code;
+    return ret;
+  }
+  /*! \brief The value field, if the data is POD */
+  const CVMValue& value() const {
+    ICHECK(type_code_ != kCVMObjectHandle && type_code_ != kCVMPackedFuncHandle &&
+           type_code_ != kCVMModuleHandle && type_code_ != kCVMStr)
+        << "CVMRetValue.value can only be used for POD data.";
+    return value_;
+  }
+  // ObjectRef handling
+  template <typename TObjectRef,
+            typename = typename std::enable_if<std::is_base_of<ObjectRef, TObjectRef>::value>::type>
+  inline CVMRetValue& operator=(TObjectRef other);
+  template <typename T, typename = typename std::enable_if<std::is_class<T>::value>::type>
+  inline operator T() const;
+
+ private:
+  template <typename T>
+  void Assign(const T& other) {
+    switch (other.type_code()) {
+      case kCVMStr: {
+        SwitchToClass<std::string>(kCVMStr, other);
+        break;
+      }
+      case kCVMBytes: {
+        SwitchToClass<std::string>(kCVMBytes, other);
+        break;
+      }
+      case kCVMPackedFuncHandle: {
+        SwitchToClass<PackedFunc>(kCVMPackedFuncHandle, other);
+        break;
+      }
+      case kCVMModuleHandle: {
+        *this = other.operator Module();
+        break;
+      }
+      case kCVMNDArrayHandle: {
+        *this = other.operator NDArray();
+        break;
+      }
+      case kCVMObjectHandle: {
+        // Avoid operator ObjectRef as we already know it is not NDArray/Module
+        SwitchToObject(kCVMObjectHandle,
+                       GetObjectPtr<Object>(static_cast<Object*>(other.value_.v_handle)));
+        break;
+      }
+      case kCVMObjectRValueRefArg: {
+        operator=(other.operator ObjectRef());
+        break;
+      }
+      default: {
+        SwitchToPOD(other.type_code());
+        value_ = other.value_;
+        break;
+      }
+    }
+  }
+
+  void SwitchToPOD(int type_code) {
+    if (type_code_ != type_code) {
+      this->Clear();
+      type_code_ = type_code;
+    }
+  }
+  template <typename T>
+  void SwitchToClass(int type_code, T v) {
+    if (type_code_ != type_code) {
+      this->Clear();
+      type_code_ = type_code;
+      value_.v_handle = new T(v);
+    } else {
+      *static_cast<T*>(value_.v_handle) = v;
+    }
+  }
+  void SwitchToObject(int type_code, ObjectPtr<Object> other) {
+    if (other.data_ != nullptr) {
+      this->Clear();
+      type_code_ = type_code;
+      // move the handle out
+      value_.v_handle = other.data_;
+      other.data_ = nullptr;
+    } else {
+      SwitchToPOD(kCVMNullptr);
+    }
+  }
+
+  void Clear() {
+    if (type_code_ == kCVMNullptr) return;
+    switch (type_code_) {
+      case kCVMStr:
+      case kCVMBytes:
+        delete ptr<std::string>();
+        break;
+      case kCVMPackedFuncHandle:
+        delete ptr<PackedFunc>();
+        break;
+      case kCVMNDArrayHandle: {
+        // TODO:
+        break;
+      }
+      case kCVMModuleHandle: {
+        static_cast<Object*>(value_.v_handle)->DecRef();
+        break;
+      }
+      case kCVMObjectHandle: {
+        static_cast<Object*>(value_.v_handle)->DecRef();
+        break;
+      }
+    }
+    type_code_ = kCVMNullptr;
   }
 };
 
@@ -332,6 +682,12 @@ class CVMArgsSetter {
  private:
   CVMValue* values_;
   int* type_codes_;
+};
+
+template <typename TObjectRef>
+struct PackedFuncValueConverter {
+  static TObjectRef From(const CVMArgValue& val) { return val.template AsObjectRef<TObjectRef>(); }
+  static TObjectRef From(const CVMRetValue& val) { return val.template AsObjectRef<TObjectRef>(); }
 };
 
 namespace detail {
@@ -357,6 +713,14 @@ void for_each(const F& f, Args&&... args) {
 
 }  // namespace detail
 
+inline int CVMArgs::size() const { return num_args; }
+
+inline CVMArgValue CVMArgs::operator[](int i) const {
+  ICHECK_LT(i, num_args) << "not enough argument passed, " << num_args << " passed"
+                         << " but request arg[" << i << "].";
+  return CVMArgValue(values[i], type_codes[i]);
+}
+
 template <typename... Args>
 inline CVMRetValue PackedFunc::operator()(Args&&... args) {
   const int kNumArgs = sizeof...(Args);
@@ -369,6 +733,10 @@ inline CVMRetValue PackedFunc::operator()(Args&&... args) {
   return rv;
 }
 
+void PackedFunc::CallPacked(CVMArgs args, CVMRetValue* rv) const { body_(args, rv); }
+
+PackedFunc::FType PackedFunc::body() const { return body_; }
+
 namespace detail {
 
 template <typename R, int nleft, int index, typename F>
@@ -378,7 +746,7 @@ struct unpack_call_dispatcher {
                                     const CVMArgs& args_pack, CVMRetValue* rv,
                                     Args&&... unpack_args) {
     unpack_call_dispatcher<R, nleft - 1, index + 1, F>::run(
-        optional_name, f, args_pack, std::forward<Args>(unpack_args)...,
+        optional_name, f, args_pack, rv, std::forward<Args>(unpack_args)...,
         CVMMovableArgValueWithContext_(args_pack.values[index], args_pack.type_codes[index], index,
                                        optional_name));
   }
@@ -483,7 +851,6 @@ CVM_ALWAYS_INLINE R TypedPackedFunc<R(Args...)>::operator()(Args&&... args) cons
 template <typename TObjectRef, typename>
 inline bool CVMPODValue_::IsObjectRef() const {
   using ContainerType = typename TObjectRef::ContainerType;
-  // NOTE: the following code can be optimized by constant folding.
   if (std::is_base_of<NDArray::ContainerType, ContainerType>::value) {
     return type_code_ == kCVMNDArrayHandle &&
            CVMArrayHandleToObjectHandle(static_cast<CVMArrayHandle>(value_.v_handle))
@@ -493,10 +860,35 @@ inline bool CVMPODValue_::IsObjectRef() const {
     return type_code_ == kCVMModuleHandle &&
            static_cast<Object*>(value_.v_handle)->template IsInstance<ContainerType>();
   }
-  // NOTE: we don't pass NDArray and runtime::Module as RValue ref.
-  if (type_code_ == kCVMObjectRValueRefArg) {
+  return (std::is_base_of<ContainerType, NDArray::ContainerType>::value &&
+          type_code_ == kCVMNDArrayHandle) ||
+         (std::is_base_of<ContainerType, Module::ContainerType>::value &&
+          type_code_ == kCVMModuleHandle) ||
+         (type_code_ == kCVMObjectHandle &&
+          ObjectTypeChecker<TObjectRef>::Check(static_cast<Object*>(value_.v_handle)));
+}
 
+template <typename T, typename>
+inline CVMArgValue::operator T() const {
+  return PackedFuncValueConverter<T>::From(*this);
+}
+
+inline CVMArgValue::operator DLDataType() const {
+    // TODO:
+};
+
+inline CVMArgValue::operator DataType() const { return DataType(operator DLDataType()); }
+
+template <typename T, typename>
+inline CVMMovableArgValue_::operator T() const {
+  if (type_code_ == kCVMObjectRValueRefArg) {
+    auto** ref = static_cast<Object**>(value_.v_handle);
+    if (ObjectTypeChecker<T>::Check(*ref)) {
+      return T(ObjectPtr<Object>::MoveFromRValueRefArg(ref));
+    }
   }
+  // fallback
+  return PackedFuncValueConverter<T>::From(AsArgValue());
 }
 
 }  // namespace runtime
