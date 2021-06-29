@@ -7,11 +7,10 @@
 
 using namespace cvm::runtime;
 
-void temp(CVMArgs args, CVMRetValue* rv) {
-
+int add_one(int) {
+  return 0;
 }
 
 int main(int argc, char** argv) {
-  PackedFunc packed_func(temp);
-  packed_func(1, 2);
+  TypedPackedFunc<int(int)> packed_func(add_one);
 }

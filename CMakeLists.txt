@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.2)
 project(CVM C CXX)
 
-set(CMAKE_CXX_FLAGS "-std=c++11 -fPIC")
+set(CMAKE_CXX_FLAGS "-std=c++14 -fPIC")
 
 include_directories(
 	include

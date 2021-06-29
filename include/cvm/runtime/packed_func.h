@@ -30,7 +30,7 @@ class PackedFunc {
 
   PackedFunc() = default;
 
-  PackedFunc(std::nullptr_t null) {}  // NOLINT(*)
+  PackedFunc(std::nullptr_t null) {}  // NOLINT
 
   explicit PackedFunc(FType body) : body_(std::move(body)) {}
 
@@ -47,6 +47,38 @@ class PackedFunc {
 template <typename FType>
 class TypedPackedFunc;
 
+/*!
+ * \anchor TypedPackedFuncAnchor
+ * \brief A PackedFunc wrapper to provide typed function signature.
+ * It is backed by a PackedFunc internally.
+ *
+ * TypedPackedFunc enables compile time type checking.
+ * TypedPackedFunc works with the runtime system.
+ * - It can be passed as an argument of PackedFunc.
+ * - It can be assigned to CVMRetValue.
+ * - It can be directly converted to a typed-erased PackedFunc.
+ *
+ * Developers should prefer TypedPackedFunc over PackedFunc in C++ code
+ * as it enables compile time checking.
+ * We can construct a TypedPackedFunc from a lambda function
+ * with the same signature.
+ *
+ * \code
+ *  // user defined lambda function.
+ *  auto addone = [](int x)->int {
+ *    return x + 1;
+ *  };
+ *  // We can directly convert
+ *  // lambda function to TypedPackedFunc
+ *  TypedPackedFunc<int(int)> ftyped(addone);
+ *  // invoke the function.
+ *  int y = ftyped(1);
+ *  // Can be directly converted to PackedFunc
+ *  PackedFunc packed = ftype;
+ * \endcode
+ * \tparam R The return value of the function.
+ * \tparam Args The argument signature of the function.
+ */
 template <typename R, typename... Args>
 class TypedPackedFunc<R(Args...)> {
  public:
@@ -54,15 +86,15 @@ class TypedPackedFunc<R(Args...)> {
 
   TypedPackedFunc() = default;
 
-  TypedPackedFunc(std::nullptr_t null) {}  // NOLINT(*)
+  TypedPackedFunc(std::nullptr_t null) {}  // NOLINT
 
-  inline TypedPackedFunc(PackedFunc packed);  // NOLINT(*)
+  inline TypedPackedFunc(PackedFunc packed);  // NOLINT
 
-  inline TypedPackedFunc(const CVMRetValue& value);  // NOLINT(*)
+  inline TypedPackedFunc(const CVMRetValue& value);  // NOLINT
 
-  inline TypedPackedFunc(const CVMArgValue& value);  // NOLINT(*)
+  inline TypedPackedFunc(const CVMArgValue& value);  // NOLINT
 
-  inline TypedPackedFunc(CVMMovableArgValueWithContext_&& value);  // NOLINT(*)
+  inline TypedPackedFunc(CVMMovableArgValueWithContext_&& value);  // NOLINT
 
   template <typename FLambda, typename = typename std::enable_if<std::is_convertible<
                                   FLambda, std::function<R(Args...)>>::value>::type>
@@ -72,25 +104,25 @@ class TypedPackedFunc<R(Args...)> {
 
   template <typename FLambda, typename = typename std::enable_if<std::is_convertible<
                                   FLambda, std::function<R(Args...)>>::value>::type>
-  TypedPackedFunc(const FLambda& typed_lambda) {  // NOLINT(*)
+  TypedPackedFunc(const FLambda& typed_lambda) {  // NOLINT
     this->template AssignTypedLambda(typed_lambda);
   }
 
   template <typename FLambda, typename = typename std::enable_if<std::is_convertible<
                                   FLambda, std::function<R(Args...)>>::value>::type>
-  TSelf& operator=(FLambda typed_lambda) {  // NOLINT(*)
+  TSelf& operator=(FLambda typed_lambda) {  // NOLINT
     this->template AssignTypedLambda(typed_lambda);
     return *this;
   }
 
-  TSelf& operator=(PackedFunc packed) {  // NOLINT(*)
+  TSelf& operator=(PackedFunc packed) {  // NOLINT
     packed_ = packed;
     return *this;
   }
 
   CVM_ALWAYS_INLINE R operator()(Args&&... args) const;
 
-  operator PackedFunc() const { return packed(); }  // NOLINT(*)
+  operator PackedFunc() const { return packed(); }  // NOLINT
 
   const PackedFunc& packed() const { return packed_; }
 
@@ -122,12 +154,111 @@ class CVMArgs {
   int num_args;
 };
 
+inline const char* ArgTypeCode2Str(int type_code);
+
+template <typename T>
+struct ObjectTypeChecker {
+  static Optional<String> CheckAndGetMisMatch(const Object* ptr) {
+    using ContainerType = typename T::ContainerType;
+    if (ptr == nullptr) {
+      if (T::_type_is_nullable) {
+        return NullOpt;
+      } else {
+        return String("nullptr");
+      }
+    }
+    if (ptr->template IsInstance<ContainerType>()) {
+      return NullOpt;
+    } else {
+      String(ptr->GetTypeKey());
+    }
+  }
+
+  static bool Check(const Object* ptr) {
+    using ContainerType = typename T::ContainerType;
+    if (ptr == nullptr) return T::_type_is_nullable;
+    return ptr->template IsInstance<ContainerType>();
+  }
+  static std::string TypeName() {
+    using ContainerType = typename T::ContainerType;
+    return ContainerType::_type_key;
+  }
+};
+
+template <typename T>
+struct ObjectTypeChecker<Array>
+
 class CVMPODValue_ {
  public:
+  operator double() const {  // NOLINT
+    if (type_code_ == kDLInt) {
+      return static_cast<double>(value_.v_int64);
+    }
+    CVM_CHECK_TYPE_CODE(type_code_, kDLFloat);
+    return value_.v_float64;
+  }
+  operator int64_t() const {  // NOLINT
+    CVM_CHECK_TYPE_CODE(type_code_, kDLInt);
+    return value_.v_int64;
+  }
+  operator uint64_t() const {  // NOLINT
+    CVM_CHECK_TYPE_CODE(type_code_, kDLInt);
+    return value_.v_int64;
+  }
+  operator int() const {  // NOLINT
+    CVM_CHECK_TYPE_CODE(type_code_, kDLInt);
+    ICHECK_LE(value_.v_int64, std::numeric_limits<int>::max());
+    ICHECK_GE(value_.v_int64, std::numeric_limits<int>::min());
+    return static_cast<int>(value_.v_int64);
+  }
+  operator bool() const {  // NOLINT
+    CVM_CHECK_TYPE_CODE(type_code_, kDLInt);
+    return value_.v_int64 != 0;
+  }
+  operator void*() const {  // NOLINT
+    if (type_code_ == kCVMNullptr) return nullptr;
+    if (type_code_ == kCVMDLTensorHandle) return value_.v_handle;
+    CVM_CHECK_TYPE_CODE(type_code_, kCVMOpaqueHandle);
+    return value_.v_handle;
+  }
+  operator DLTensor*() const {  // NOLINT
+    if (type_code_ == kCVMDLTensorHandle || type_code_ == kCVMNDArrayHandle) {
+      return static_cast<DLTensor*>(value_.v_handle);
+    } else {
+      if (type_code_ == kCVMNullptr) return nullptr;
+      LOG(FATAL) << "Expected "
+                 << "DLTensor* or NDArray but got " << ArgTypeCode2Str(type_code_);
+      return nullptr;
+    }
+  }
+  operator NDArray() const {  // NOLINT
+    if (type_code_ == kCVMNullptr) return NDArray(ObjectPtr<Object>(nullptr));
+    CVM_CHECK_TYPE_CODE(type_code_, kCVMNDArrayHandle);
+    return NDArray(NDArray::FFIDataFromHandle(static_cast<CVMArrayHandle>(value_.v_handle)));
+  }
+  operator Module() const {  // NOLINT
+    if (type_code_ == kCVMNullptr) {
+      return Module(ObjectPtr<Object>(nullptr));
+    }
+    CVM_CHECK_TYPE_CODE(type_code_, kCVMModuleHandle);
+    return Module(ObjectPtr<Object>(static_cast<Object*>(value_.v_handle)));
+  }
+  operator Device() const {  // NOLINT
+    CVM_CHECK_TYPE_CODE(type_code_, kDLDevice);
+    return value_.v_device;
+  }
+  int type_code() const { return type_code_; }
+
   template <typename T>
   T* ptr() const {
     return static_cast<T*>(value_.v_handle);
   }
+  // ObjectRef handling
+  template <typename TObjectRef,
+            typename = typename std::enable_if<std::is_base_of<ObjectRef, TObjectRef>::value>::type>
+  inline bool IsObjectRef() const;
+  template <typename TObjectRef>
+  inline TObjectRef AsObjectRef() const;
 
  protected:
   CVMPODValue_() : type_code_(kCVMNullptr) {}
@@ -138,7 +269,7 @@ class CVMPODValue_ {
 
 class CVMArgValue : public CVMPODValue_ {
  public:
-  operator PackedFunc() const {  // NOLINT(*)
+  operator PackedFunc() const {  // NOLINT
     if (type_code_ == kCVMNullptr) return PackedFunc();
     CVM_CHECK_TYPE_CODE(type_code_, kCVMPackedFuncHandle);
     return *ptr<PackedFunc>();
@@ -157,7 +288,7 @@ class CVMMovableArgValueWithContext_ {
       : value_(value, type_code), arg_index_(arg_index), optional_name_(optional_name) {}
 
   template <typename T>
-  operator T() const {  // NOLINT(*)
+  operator T() const {  // NOLINT
     try {
       return value_;
     } catch (Error& e) {
@@ -177,13 +308,13 @@ class CVMRetValue : public CVMPODValue_ {
  public:
   CVMRetValue() = default;
 
-  operator PackedFunc() const {  // NOLINT(*)
+  operator PackedFunc() const {  // NOLINT
     if (type_code_ == kCVMNullptr) return PackedFunc();
     CVM_CHECK_TYPE_CODE(type_code_, kCVMPackedFuncHandle);
     return *ptr<PackedFunc>();
   }
   template <typename FType>
-  operator TypedPackedFunc<FType>() const {  // NOLINT(*)
+  operator TypedPackedFunc<FType>() const {  // NOLINT
     return TypedPackedFunc<FType>(operator PackedFunc());
   }
 };
@@ -285,6 +416,7 @@ CVM_ALWAYS_INLINE void unpack_call(const std::string* optional_name, const F& f,
                                 << (optional_name == nullptr ? "<anonymous>" : *optional_name)
                                 << " expects " << nargs << " arguments but " << args.size()
                                 << " were provided";
+  unpack_call_dispatcher<R, nargs, 0, F>::run(optional_name, f, args, rv);
 }
 
 template <typename R>
@@ -326,8 +458,8 @@ inline void TypedPackedFunc<R(Args...)>::AssignTypedLambda(FType flambda, std::s
     if (args.size() != sizeof...(Args)) {
       LOG(FATAL) << "Function " << name << " expects " << sizeof...(Args) << " arguments, but "
                  << args.size() << " were provided.";
-      detail::unpack_call<R, sizeof...(Args)>(&name, flambda, args, rv);
     }
+    detail::unpack_call<R, sizeof...(Args)>(&name, flambda, args, rv);
   });
 }
 
@@ -346,6 +478,25 @@ inline void TypedPackedFunc<R(Args...)>::AssignTypedLambda(FType flambda) {
 template <typename R, typename... Args>
 CVM_ALWAYS_INLINE R TypedPackedFunc<R(Args...)>::operator()(Args&&... args) const {
   return detail::typed_packed_call_dispatcher<R>::run(packed_, std::forward<Args>(args)...);
+}
+
+template <typename TObjectRef, typename>
+inline bool CVMPODValue_::IsObjectRef() const {
+  using ContainerType = typename TObjectRef::ContainerType;
+  // NOTE: the following code can be optimized by constant folding.
+  if (std::is_base_of<NDArray::ContainerType, ContainerType>::value) {
+    return type_code_ == kCVMNDArrayHandle &&
+           CVMArrayHandleToObjectHandle(static_cast<CVMArrayHandle>(value_.v_handle))
+               ->template IsInstance<ContainerType>();
+  }
+  if (std::is_base_of<Module::ContainerType, ContainerType>::value) {
+    return type_code_ == kCVMModuleHandle &&
+           static_cast<Object*>(value_.v_handle)->template IsInstance<ContainerType>();
+  }
+  // NOTE: we don't pass NDArray and runtime::Module as RValue ref.
+  if (type_code_ == kCVMObjectRValueRefArg) {
+
+  }
 }
 
 }  // namespace runtime

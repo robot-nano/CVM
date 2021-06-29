@@ -1,10 +1,8 @@
-import cvm._ffi
-from cvm.runtime import Object
+import numpy as np
+from cvm._ffi.runtime_ctypes import DataType
 
+data = np.array([1, 2], dtype=np.float32)
 
-@cvm._ffi.register_object("test.temp")
-class ModularSet(Object):
-    """Represent range of (coeff * x + base) for x in Z"""
+data_type = DataType("int")
 
-    def __init__(self, coeff, base):
-        pass
+print(data_type)

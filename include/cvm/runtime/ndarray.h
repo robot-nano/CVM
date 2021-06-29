@@ -103,6 +103,10 @@ class NDArray::Container : public Object, public NDArray::ContainerBase {
   friend class NDArray;
 };
 
+inline Object* CVMArrayHandleToObjectHandle(CVMArrayHandle handle) {
+  return static_cast<NDArray::Container*>(reinterpret_cast<NDArray::ContainerBase*>(handle));
+}
+
 }  // namespace runtime
 }  // namespace cvm
 

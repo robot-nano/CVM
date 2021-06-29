@@ -126,6 +126,301 @@ class InplaceArrayBase {
   }
 };
 
+/*!
+ * \brief iterator adapter that adapts TIter to return another type.
+ * \tparam Converter a struct that contains converting function
+ * \tparam TIter the content iterator type.
+ */
+template <typename Converter, typename TIter>
+class IterAdapter {
+ public:
+  using difference_type = typename std::iterator_traits<TIter>::difference_type;
+  using value_type = typename Converter::ResultType;
+  using pointer = typename Converter::ResultType*;
+  using reference = typename Converter::ResultType&;
+  using iterator_category = typename std::iterator_traits<TIter>::iterator_category;
+
+  explicit IterAdapter(TIter iter) : iter_(iter) {}
+  IterAdapter& operator++() {
+    ++iter_;
+    return *this;
+  }
+  IterAdapter& operator--() {
+    --iter_;
+    return *this;
+  }
+  IterAdapter operator++(int) {
+    IterAdapter copy = *this;
+    ++iter_;
+    return copy;
+  }
+  IterAdapter operator--(int) {
+    IterAdapter copy = *this;
+    --iter_;
+    return copy;
+  }
+
+  IterAdapter operator+(difference_type offset) const { return IterAdapter(iter_ + offset); }
+
+  IterAdapter operator-(difference_type offset) const { return IterAdapter(iter_ - offset); }
+
+  template <typename T = IterAdapter>
+  typename std::enable_if<std::is_same<iterator_category, std::random_access_iterator_tag>::value,
+                          typename T::difference_type>::type inline
+  operator-(const IterAdapter& rhs) const {
+    return iter_ - rhs.iter_;
+  }
+
+  bool operator==(IterAdapter other) const { return iter_ == other.iter_; }
+  bool operator!=(IterAdapter other) const { return !(*this == other); }
+  const value_type operator*() const { return Converter::convert(*iter_); }
+
+ private:
+  TIter iter_;
+};
+
+/*!
+ * \brief iterator adapter that adapts TIter to return another type.
+ * \tparam Converter a struct that contains converting function
+ * \tparam TIter the content iterator type.
+ */
+template <typename Converter, typename TIter>
+class ReverseIterAdapter {
+ public:
+  using difference_type = typename std::iterator_traits<TIter>::difference_type;
+  using value_type = typename Converter::ResultType;
+  using pointer = typename Converter::ResultType*;
+  using reference = typename Converter::ResultType&;
+  using iterator_category = typename std::iterator_traits<TIter>::iterator_category;
+
+  explicit ReverseIterAdapter(TIter iter) : iter_(iter) {}
+  ReverseIterAdapter& operator++() {
+    --iter_;
+    return *this;
+  }
+  ReverseIterAdapter& operator--() {
+    ++iter_;
+    return *this;
+  }
+  ReverseIterAdapter& operator++(int) {
+    ReverseIterAdapter copy = *this;
+    --iter_;
+    return copy;
+  }
+  ReverseIterAdapter& operator--(int) {
+    ReverseIterAdapter copy = *this;
+    --iter_;
+    return copy;
+  }
+  ReverseIterAdapter operator+(difference_type offset) const {
+    return ReverseIterAdapter(iter_ - offset);
+  }
+
+  template <typename T = ReverseIterAdapter>
+  typename std::enable_if<std::is_same<iterator_category, std::random_access_iterator_tag>::value,
+                          typename T::difference_type>::type inline
+  operator-(const ReverseIterAdapter& rhs) const {
+    return rhs.iter_ - iter_;
+  }
+
+  bool operator==(ReverseIterAdapter other) const { return iter_ == other.iter_; }
+  bool operator!=(ReverseIterAdapter other) const { return !(*this == other); }
+  const value_type operator*() const { return Converter::convert(*iter_); }
+
+ private:
+  TIter iter_;
+};
+
+class ArrayNode : public Object, public InplaceArrayBase<ArrayNode, ObjectRef> {
+ public:
+  size_t size() const { return this->size_; }
+
+  const ObjectRef at(int64_t i) const { return this->operator[](i); }
+
+  const ObjectRef* begin() const { return static_cast<ObjectRef*>(InplaceArrayBase::AddressOf(0)); }
+
+  const ObjectRef* end() const { return begin() + size_; }
+
+  void clear() {}
+
+  void SetItem(int64_t i, ObjectRef item) { this->operator[](i) = std::move(item); }
+
+  static ObjectPtr<ArrayNode> CopyFrom(int64_t cap, ArrayNode* from) {
+    int64_t size = from->size_;
+    ICHECK_GE(cap, size) << "ValueError: not enough capacity";
+    ObjectPtr<ArrayNode> p = ArrayNode::Empty(cap);
+    ObjectRef* write = p->MutableBegin();
+    ObjectRef* read = from->MutableBegin();
+    for (int64_t& i = p->size_ = 0; i < size; ++i) {
+      new (write++) ObjectRef(*read++);
+    }
+    return p;
+  }
+
+  static ObjectPtr<ArrayNode> MoveFrom(int64_t cap, ArrayNode* from) {
+    int64_t size = from->size_;
+    ICHECK_GE(cap, size) << "ValueError: not enough capacity";
+    ObjectPtr<ArrayNode> p = ArrayNode::Empty(cap);
+    ObjectRef* write = p->MutableBegin();
+    ObjectRef* read = from->MutableBegin();
+    for (int64_t& i = p->size_ = 0; i < size; ++i) {
+      new (write++) ObjectRef(std::move(*read++));
+    }
+    from->size_ = 0;
+    return p;
+  }
+
+  static ObjectPtr<ArrayNode> CreateRepeated(int64_t n, const ObjectRef& val) {
+    ObjectPtr<ArrayNode> p = ArrayNode::Empty(n);
+    ObjectRef* itr = p->MutableBegin();
+    for (int64_t& i = p->size_ = 0; i < n; ++i) {
+      new (itr++) ObjectRef(val);
+    }
+    return p;
+  }
+
+  static constexpr const uint32_t _type_index = TypeIndex::kRuntimeArray;
+  static constexpr const char* _type_key = "Array";
+  CVM_DECLARE_FINAL_OBJECT_INFO(ArrayNode, Object);
+
+ private:
+  size_t GetSize() const { return this->size_; }
+
+  ObjectRef* MutableBegin() const {
+    return static_cast<ObjectRef*>(InplaceArrayBase::AddressOf(0));
+  }
+
+  ObjectRef* MutableEnd() const { return MutableBegin() + size_; }
+
+  static ObjectPtr<ArrayNode> Empty(int64_t n = kInitSize) {
+    ICHECK_GE(n, 0);
+    ObjectPtr<ArrayNode> p = make_inplace_array_object<ArrayNode, ObjectRef>(n);
+    p->capacity_ = n;
+    p->size_ = 0;
+    return p;
+  }
+
+  template <typename IterType>
+  ArrayNode* InitRange(int64_t idx, IterType first, IterType last) {
+    ObjectRef* itr = MutableBegin() + idx;
+    for (; first != last; ++first) {
+      ObjectRef ref = *first;
+      new (itr++) ObjectRef(std::move(ref));
+    }
+    return this;
+  }
+
+  ArrayNode* MoveElementsLeft(int64_t dst, int64_t src_begin, int64_t src_end) {
+    ObjectRef* from = MutableBegin() + src_begin;
+    ObjectRef* to = MutableBegin() + dst;
+    while (src_begin++ != src_end) {
+      *to++ = std::move(*from++);
+    }
+    return this;
+  }
+
+  ArrayNode* MoveElementsRight(int64_t dst, int64_t src_begin, int64_t src_end) {
+    ObjectRef* from = MutableBegin() + src_end;
+    ObjectRef* to = MutableBegin() + (src_end - src_begin + dst);
+    while (src_begin++ != src_end) {
+      *--to = std::move(*--from);
+    }
+    return this;
+  }
+
+  ArrayNode* EnlargeBy(int64_t delta, const ObjectRef& val = ObjectRef(nullptr)) {
+    ObjectRef* itr = MutableEnd();
+    while (delta-- > 0) {
+      new (itr++) ObjectRef(val);
+      ++size_;
+    }
+    return this;
+  }
+
+  ArrayNode* ShrinkBy(int64_t delta) {
+    ObjectRef* itr = MutableEnd();
+    while (delta-- > 0) {
+      (--itr)->ObjectRef::~ObjectRef();
+      --size_;
+    }
+    return this;
+  }
+
+  int64_t size_;
+
+  int64_t capacity_;
+
+  static constexpr int64_t kInitSize = 4;
+
+  static constexpr int64_t kIncFactor = 2;
+
+  friend InplaceArrayBase<ArrayNode, ObjectRef>;
+
+  template <typename, typename>
+  friend class Array;
+
+  friend ObjectPtr<ArrayNode> make_object<>();
+};
+
+template <typename T,
+          typename = typename std::enable_if<std::is_base_of<ObjectRef, T>::value>::type>
+class Array : public ObjectRef {
+ public:
+  using value_type = T;
+
+  Array() { data_ = ArrayNode::Empty(); }
+
+  Array(Array<T>&& other) : ObjectRef() {  // NOLINT
+    data_ = std::move(other.data_);
+  }
+
+  Array(const Array<T>& other) : ObjectRef() {  // NOLINT
+    data_ = other.data_;
+  }
+
+  explicit Array(ObjectPtr<Object> n) : ObjectRef(n) {}
+
+  template <typename IterType>
+  Array(IterType first, IterType last) {
+    Assign(first, last);
+  }
+
+  void Set(int64_t i, T value) {
+    ArrayNode* p = this->CopyOnWrite();
+    ICHECK(0 <= i && i < p->size_)
+    << "IndexError: indexing " << i << " on an array of size " << p->size_;
+    *(p->MutableBegin() + i) = std::move(value);
+  }
+
+  ArrayNode* GetArrayNode() const { return static_cast<ArrayNode*>(data_.get()); }
+
+  template <typename IterType>
+  void Assign(IterType first, IterType last) {
+    int64_t cap = std::distance(first, last);
+    ICHECK_GE(cap, 0) << "ValueError: cannot constructor an Array of negative size";
+    ArrayNode *p = GetArrayNode();
+    if (p != nullptr && data_.unique() && p->capacity_ >= cap) {
+      p->clear();
+    } else {
+      data_ = ArrayNode::Empty(cap);
+      p = GetArrayNode();
+    }
+
+    ObjectRef* itr = p->MutableBegin();
+    for (int64_t& i = p->size_ = 0; i < cap; ++i, ++first, ++itr) {
+      new (itr) ObjectRef(*first);
+    }
+  }
+
+  ArrayNode* CopyOnWrite() {
+    if (data_ == nullptr) {
+
+    }
+  }
+
+  using ContainerType = ArrayNode;
+};
+
 class StringObj : public Object {
  public:
   const char* data;
@@ -386,7 +681,96 @@ inline bool ObjectEqual::operator()(const ObjectRef& a, const ObjectRef& b) cons
   return false;
 }
 
+/*! \brief Helper to represent nullptr for optional. */
+struct NullOptType {};
+
+template <typename T>
+class Optional : public ObjectRef {
+ public:
+  using ContainerType = typename T::ContainerType;
+  static_assert(std::is_base_of<ObjectRef, T>::value, "Optional is only defined for ObjectRef");
+  // default constructors
+  Optional() = default;
+  Optional(const Optional<T>&) = default;
+  Optional(Optional<T>&&) = default;
+  Optional<T>& operator=(const Optional<T>&) = default;
+  Optional<T>& operator=(Optional<T>&&) = default;
+
+  explicit Optional(ObjectPtr<Object> ptr) : ObjectRef(ptr) {}
+  Optional(NullOptType) {}  // NOLINT
+
+  explicit Optional(std::nullptr_t) {}
+
+  Optional<T>& operator=(std::nullptr_t) {
+    data_ = nullptr;
+    return *this;
+  }
+  // normal value handling.
+  Optional(T other)  // NOLINT
+      : ObjectRef(std::move(other)) {}
+  Optional<T>& operator=(T other) {
+    ObjectRef::operator=(std::move(other));
+    return *this;
+  }
+  explicit Optional(int val) = delete;
+  Optional<T>& operator=(int val) = delete;
+
+  T value() const {
+    ICHECK(data_ != nullptr);
+    return T(data_);
+  }
+
+  T value_or(T default_value) const { return data_ != nullptr ? T(data_) : default_value; }
+
+  explicit operator bool() const { return *this != nullptr; }
+
+  bool operator==(std::nullptr_t) const { return data_ == nullptr; }
+  bool operator!=(std::nullptr_t) const { return data_ != nullptr; }
+  auto operator==(const Optional<T>& other) const {
+    using RetType = decltype(value() == other.value());
+    if (same_as(other)) return RetType(true);
+    if (*this != nullptr && other != nullptr) {
+      return value() == other.value();
+    } else {
+      // one of them is nullptr.
+      return RetType(false);
+    }
+  }
+  auto operator!=(const Optional<T>& other) const {
+    using RetType = decltype(value() != other.value());
+    if (same_as(other)) return RetType(false);
+    if (*this != nullptr && other != nullptr) {
+      return value() != other.value();
+    } else {
+      return RetType(true);
+    }
+  }
+  auto operator==(const T& other) const {
+    using RetType = decltype(value() == other);
+    if (same_as(other)) return RetType(true);
+    if (*this != nullptr) return value() == other;
+    return RetType(false);
+  }
+  auto operator!=(const T& other) const { return !(*this == other); }
+  template <typename U>
+  auto operator==(const U& other) const {
+    using RetType = decltype(value() == other);
+    if (*this == nullptr) return RetType(false);
+    return value() == other;
+  }
+  template <typename U>
+  auto operator!=(const U& other) const {
+    using RetType = decltype(value() != other);
+    if (*this == nullptr) return RetType(true);
+    return value() != other;
+  }
+  static constexpr bool _type_is_nullable = true;
+};
+
 }  // namespace runtime
+
+constexpr runtime::NullOptType NullOpt{};
+
 }  // namespace cvm
 
 namespace std {
