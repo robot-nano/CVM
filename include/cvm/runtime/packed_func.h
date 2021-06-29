@@ -174,7 +174,7 @@ struct ObjectTypeChecker {
     if (ptr->template IsInstance<ContainerType>()) {
       return NullOpt;
     } else {
-      String(ptr->GetTypeKey());
+      return String(ptr->GetTypeKey());
     }
   }
 
@@ -190,7 +190,49 @@ struct ObjectTypeChecker {
 };
 
 template <typename T>
-struct ObjectTypeChecker<Array<T>> {};
+struct ObjectTypeChecker<Array<T>> {
+  static Optional<String> CheckAndGetMismatch(const Object* ptr) {
+    if (ptr == nullptr) {
+      return NullOpt;
+    }
+    if (!ptr->template IsInstance<ArrayNode>()) {
+      return String(ptr->GetTypeKey());
+    }
+    const ArrayNode* n = static_cast<const ArrayNode*>(ptr);
+    for (size_t i = 0; i < n->size(); i++) {
+      const ObjectRef& p = (*n)[i];
+      Optional<String> check_subtype = ObjectTypeChecker<T>::CheckAndGetMisMatch(p.get());
+      if (check_subtype.defined()) {
+        return String("Array[index " + std::to_string(i) + ": " + check_subtype.value() + "]");
+      }
+    }
+    return NullOpt;
+  }
+  static bool Check(const Object* ptr) {
+    if (ptr == nullptr) return true;
+    if (!ptr->template IsInstance<ArrayNode>()) return false;
+    const ArrayNode* n = static_cast<const ArrayNode*>(ptr);
+    for (const ObjectRef& p : *n) {
+      if (!ObjectTypeChecker<T>::Check(p.get())) {
+        return false;
+      }
+    }
+    return true;
+  }
+  static std::string TypeName() { return "Array[" + ObjectTypeChecker<T>::TypeName() + "]"; }
+};
+
+template <typename K, typename V>
+struct ObjectTypeChecker<Map<K, V>> {
+  static Optional<String> CheckAndGetMismatch(const Object* ptr) {
+    if (ptr == nullptr) return NullOpt;
+    if (!ptr->template IsInstance<MapNode>()) return String(ptr->GetTypeKey());
+    const MapNode* n = static_cast<const MapNode*>(ptr);
+    for (const auto& kv : *n) {
+
+    }
+  }
+};
 
 class CVMPODValue_ {
  public:
@@ -868,6 +910,63 @@ inline bool CVMPODValue_::IsObjectRef() const {
           ObjectTypeChecker<TObjectRef>::Check(static_cast<Object*>(value_.v_handle)));
 }
 
+template <typename TObjectRef>
+inline TObjectRef CVMPODValue_::AsObjectRef() const {
+  static_assert(std::is_base_of<ObjectRef, TObjectRef>::value,
+                "Conversion only works for ObjectRef");
+  using ContainerType = typename TObjectRef::ContainerType;
+
+  if (type_code_ == kCVMNullptr) {
+    ICHECK(TObjectRef::_type_is_nullable)
+        << "Expect a not null value of " << ContainerType::_type_key;
+    return TObjectRef(ObjectPtr<Object>(nullptr));
+  }
+  // NOTE: the following code can be optimized by constant folding.
+  if (std::is_base_of<NDArray::ContainerType, ContainerType>::value) {
+    // Casting to a sub-class of NDArray
+    CVM_CHECK_TYPE_CODE(type_code_, kCVMNDArrayHandle);
+    ObjectPtr<Object> data =
+        NDArray::FFIDataFromHandle(static_cast<CVMArrayHandle>(value_.v_handle));
+    ICHECK(data->template IsInstance<ContainerType>())
+        << "Expected " << ContainerType::_type_key << " but got " << data->GetTypeKey();
+    return TObjectRef(data);
+  }
+  if (std::is_base_of<Module::ContainerType, ContainerType>::value) {
+    CVM_CHECK_TYPE_CODE(type_code_, kCVMModuleHandle);
+    ObjectPtr<Object> data = GetObjectPtr<Object>(static_cast<Object*>(value_.v_handle));
+    ICHECK(data->template IsInstance<ContainerType>())
+        << "Expected " << ContainerType ::_type_key << " but got " << data->GetTypeKey();
+    return TObjectRef(data);
+  }
+  if (type_code_ == kCVMObjectHandle) {
+    // normal object type check.
+    Object* ptr = static_cast<Object*>(value_.v_handle);
+    Optional<String> checked_type = ObjectTypeChecker<TObjectRef>::CheckAndGetMisMatch(ptr);
+    ICHECK(!checked_type.defined()) << "Expected " << ObjectTypeChecker<TObjectRef>::TypeName
+                                    << ", but got " << checked_type.value();
+    return TObjectRef(GetObjectPtr<Object>(ptr));
+  } else if (type_code_ == kCVMObjectRValueRefArg) {
+    Object* ptr = *static_cast<Object**>(value_.v_handle);
+    Optional<String> checked_type = ObjectTypeChecker<TObjectRef>::CheckAndGetMisMatch(ptr);
+    ICHECK(!checked_type.defined()) << "Expected " << ObjectTypeChecker<TObjectRef>::TypeName()
+                                    << ", but got " << checked_type.value();
+    return TObjectRef(GetObjectPtr<Object>(ptr));
+  } else if (std::is_base_of<ContainerType, NDArray::ContainerType>::value &&
+             type_code_ == kCVMNDArrayHandle) {
+    // Casting to a base class that NDArray can sub-class
+    ObjectPtr<Object> data =
+        NDArray::FFIDataFromHandle(static_cast<CVMArrayHandle>(value_.v_handle));
+    return TObjectRef(data);
+  } else if (std::is_base_of<ContainerType, Module::ContainerType>::value &&
+             type_code_ == kCVMModuleHandle) {
+    // Casting to a base class that Module can sub-class
+    return TObjectRef(GetObjectPtr<Object>(static_cast<Object*>(value_.v_handle)));
+  } else {
+    CVM_CHECK_TYPE_CODE(type_code_, kCVMObjectHandle);
+    return TObjectRef(ObjectPtr<Object>(nullptr));
+  }
+}
+
 template <typename T, typename>
 inline CVMArgValue::operator T() const {
   return PackedFuncValueConverter<T>::From(*this);
@@ -889,6 +988,33 @@ inline CVMMovableArgValue_::operator T() const {
   }
   // fallback
   return PackedFuncValueConverter<T>::From(AsArgValue());
+}
+
+template <typename TObjectRef, typename>
+inline CVMRetValue& CVMRetValue::operator=(TObjectRef other) {
+  using ContainerType = typename TObjectRef::ContainerType;
+  const Object* ptr = other.get();
+  if (ptr != nullptr) {
+    if (std::is_base_of<NDArray::ContainerType, ContainerType>::value ||
+        (std::is_base_of<ContainerType, NDArray::ContainerType>::value &&
+         ptr->template IsInstance<NDArray::ContainerType>())) {
+      return operator=(NDArray(std::move(other.data_)));
+    }
+    if (std::is_base_of<Module::ContainerType, ContainerType>::value ||
+        (std::is_base_of<ContainerType, Module::ContainerType>::value &&
+         ptr->template IsInstance<Module::ContainerType>())) {
+      return operator=(Module(std::move(other.data_)));
+    }
+    SwitchToObject(kCVMObjectHandle, std::move(other.data_));
+  } else {
+    SwitchToPOD(kCVMNullptr);
+  }
+  return *this;
+}
+
+template <typename T, typename>
+inline CVMRetValue::operator T() const {
+  return PackedFuncValueConverter<T>::From(*this);
 }
 
 }  // namespace runtime

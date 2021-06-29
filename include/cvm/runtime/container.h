@@ -767,6 +767,94 @@ class Optional : public ObjectRef {
   static constexpr bool _type_is_nullable = true;
 };
 
+class MapNode : public Object {
+ public:
+  using key_type = ObjectRef;
+  using mapped_type = ObjectRef;
+  using KVType = std::pair<ObjectRef, ObjectRef>;
+  class iterator;
+
+  static_assert(std::is_standard_layout<KVType>::value, "KVType is not standard layout");
+  static_assert(sizeof(KVType) == 16 || sizeof(KVType) == 8, "sizeof(KVType) incorrect");
+
+  static constexpr const uint32_t _type_index = runtime::TypeIndex::kRuntimeMap;
+  static constexpr const char* _type_key = "Map";
+  CVM_DECLARE_FINAL_OBJECT_INFO(MapNode, Object);
+
+  size_t size() const { return size_; }
+
+  size_t count(const key_type& key) const;
+
+  const mapped_type& at(const key_type& key) const;
+
+  mapped_type& at(const key_type& key);
+
+  iterator begin() const;
+
+  iterator end() const;
+
+  iterator find(const key_type& key) const;
+
+  void erase(const iterator& position);
+
+  void erase(const key_type& key);
+
+  class iterator {
+   public:
+    using iterator_category = std::forward_iterator_tag;
+    using difference_type = int64_t;
+    using value_type = KVType;
+    using pointer = KVType*;
+    using reference = KVType&;
+
+    iterator() : index(0), self(nullptr) {}
+
+    bool operator==(const iterator& other) const {
+      return index == other.index && self == other.self;
+    }
+    bool operator!=(const iterator& other) const { return !(*this == other); }
+    pointer operator->() const;
+    reference operator*() const { return *((*this).operator->()); }
+    iterator& operator++();
+    iterator& operator--();
+    iterator operator++(int) {
+      iterator copy = *this;
+      ++(*this);
+      return copy;
+    }
+    iterator operator--(int) {
+      iterator copy = *this;
+      --(*this);
+      return copy;
+    }
+
+   protected:
+    iterator(uint64_t index, const MapNode* self) : index(index), self(self) {}
+    uint64_t index;
+    const MapNode* self;
+  };
+
+  static inline ObjectPtr<MapNode> Empty();
+
+ protected:
+  template <typename IterType>
+  static inline ObjectPtr<Object> CreateFromRange(IterType first, IterType last);
+
+  static inline void InsertMaybeReHash(const KVType& kv, ObjectPtr<Object*> map);
+
+  static inline ObjectPtr<MapNode> CopyFrom(MapNode* from);
+
+  uint64_t slots_;
+  uint64_t size_;
+};
+
+template <typename K, typename V,
+          typename = typename std::enable_if<std::is_base_of<ObjectRef, K>::value>::type,
+          typename = typename std::enable_if<std::is_base_of<ObjectRef, V>::value>::type>
+class Map : public ObjectRef {
+
+};
+
 }  // namespace runtime
 
 constexpr runtime::NullOptType NullOpt{};
