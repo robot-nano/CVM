@@ -229,8 +229,31 @@ struct ObjectTypeChecker<Map<K, V>> {
     if (!ptr->template IsInstance<MapNode>()) return String(ptr->GetTypeKey());
     const MapNode* n = static_cast<const MapNode*>(ptr);
     for (const auto& kv : *n) {
-
+      Optional<String> key_type = ObjectTypeChecker<K>::CheckAndGetMisMatch(kv.first.get());
+      Optional<String> value_type = ObjectTypeChecker<K>::CheckAndGetMisMatch(kv.first.get());
+      if (key_type.defined() || value_type.defined()) {
+        std::string key_name =
+            key_type.defined() ? std::string(key_type.value()) : ObjectTypeChecker<K>::TypeName();
+        std::string value_name = value_type.defined() ? std::string(value_type.value())
+                                                      : ObjectTypeChecker<V>::TypeName();
+        return String("Map[" + key_name + ", " + value_name + "]");
+      }
     }
+    return NullOpt;
+  }
+  static bool Check(const Object* ptr) {
+    if (ptr == nullptr) return true;
+    if (!ptr->template IsInstance<MapNode>()) return false;
+    const MapNode* n = static_cast<const MapNode*>(ptr);
+    for (const auto& kv : *n) {
+      if (!ObjectTypeChecker<K>::Check(kv.first.get())) return false;
+      if (!ObjectTypeChecker<V>::Check(kv.second.get())) return false;
+    }
+    return true;
+  }
+  static std::string TypeName() {
+    return "Map[" + ObjectTypeChecker<K>::TypeName() + ", " + ObjectTypeChecker<V>::TypeName() +
+           "]";
   }
 };
 
@@ -753,6 +776,39 @@ void for_each(const F& f, Args&&... args) {
   for_each_dispatcher<sizeof...(Args) == 0, 0, F>::run(f, std::forward<Args>(args)...);
 }
 
+template <typename T>
+struct func_signature_helper {
+  using FType = void;
+};
+
+template <typename T, typename R, typename... Args>
+struct func_signature_helper<R (T::*)(Args...)> {
+  using FType = R(Args...);
+  static_assert(!std::is_reference<R>::value, "TypedPackedFunc return reference");
+};
+
+template <typename T, typename R, typename... Args>
+struct func_signature_helper<R (T::*)(Args...) const> {
+  using FType = R(Args...);
+  static_assert(!std::is_reference<R>::value, "TypedPackedFunc return reference");
+};
+
+template <typename T>
+struct function_signature {
+  using FType = typename func_signature_helper<decltype(&T::operator())>::FType;
+};
+
+template <typename R, typename... Args>
+struct function_signature<R(Args...)> {
+  using FType = R(Args...);
+  static_assert(!std::is_reference<R>::value, "TypedPackedFunc return reference");
+};
+
+template <typename R, typename... Args>
+struct function_signature<R(*)(Args...)> {
+  using FType = R(Args...);
+  static_assert(!std::is_reference<R>::value, "TypedPackedFunc return reference");
+};
 }  // namespace detail
 
 inline int CVMArgs::size() const { return num_args; }
@@ -972,8 +1028,24 @@ inline CVMArgValue::operator T() const {
   return PackedFuncValueConverter<T>::From(*this);
 }
 
+bool String::CanConvertFrom(const CVMArgValue& val) {
+  return val.type_code() == kCVMStr || val.IsObjectRef<cvm::runtime::String>();
+}
+
 inline CVMArgValue::operator DLDataType() const {
-    // TODO:
+  if (String::CanConvertFrom(*this)) {
+    return String2DLDataType(PackedFuncValueConverter<String>::From(*this).operator std::string());
+  }
+  // None type
+  if (type_code_ == kCVMNullptr) {
+    DLDataType t;
+    t.code = kCVMOpaqueHandle;
+    t.bits = 0;
+    t.lanes = 0;
+    return t;
+  }
+  CVM_CHECK_TYPE_CODE(type_code_, kCVMDataType);
+  return value_.v_type;
 };
 
 inline CVMArgValue::operator DataType() const { return DataType(operator DLDataType()); }

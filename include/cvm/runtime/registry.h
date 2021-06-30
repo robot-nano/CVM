@@ -16,6 +16,13 @@ class Registry {
   Registry& set_body(PackedFunc::FType f) {  // NOLINT(*)
     return set_body(PackedFunc(f));
   }
+
+  template <typename FLambda>
+  Registry& set_body_typed(FLambda f) {
+    using FType = typename detail::function_signature<FLambda>::FType ;
+    return set_body(TypedPackedFunc<FType>(std::move(f), name_).packed());
+  }
+
   CVM_DLL static Registry& Register(const std::string& name, bool override = false);
 
   CVM_DLL static const PackedFunc* Get(const std::string& name);

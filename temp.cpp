@@ -11,6 +11,14 @@ int add_one(int) {
   return 0;
 }
 
+enum TempType {
+  a = 1,
+  b = 2,
+  c = 3
+};
+
 int main(int argc, char** argv) {
-  TypedPackedFunc<int(int)> packed_func(add_one);
+//  TypedPackedFunc<int(int)> packed_func(add_one);
+
+
 }

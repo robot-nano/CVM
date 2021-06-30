@@ -10,6 +10,8 @@
 namespace cvm {
 namespace runtime {
 
+class CVMArgValue;
+
 struct ObjectHash {
   size_t operator()(const ObjectRef& a) const;
 };
@@ -392,6 +394,12 @@ class Array : public ObjectRef {
     *(p->MutableBegin() + i) = std::move(value);
   }
 
+ public:
+  size_t size() const {
+    ArrayNode* p = GetArrayNode();
+    return p == nullptr ? 0 : GetArrayNode()->size_;
+  }
+
   ArrayNode* GetArrayNode() const { return static_cast<ArrayNode*>(data_.get()); }
 
   template <typename IterType>
@@ -487,6 +495,8 @@ class String : public ObjectRef {
   const char* data() const { return get()->data; }
 
   operator std::string() const { return std::string(get()->data, size()); }
+
+  inline static bool CanConvertFrom(const CVMArgValue& val);
 
   static size_t HashBytes(const char* data, size_t size) {
 #if CVM_USE_CXX17_STRING_VIEW_HASH
@@ -857,6 +867,13 @@ class Map : public ObjectRef {
 
 }  // namespace runtime
 
+using runtime::Array;
+using runtime::ArrayNode;
+using runtime::Downcast;
+using runtime::IterAdapter;
+using runtime::make_object;
+using runtime::Map;
+using runtime::String;
 constexpr runtime::NullOptType NullOpt{};
 
 }  // namespace cvm
