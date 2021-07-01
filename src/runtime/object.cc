@@ -25,11 +25,15 @@ struct TypeInfo {
   size_t name_hash{0};
 };
 
+/*!
+ * \brief Type context that manages the type hierarchy information.
+ */
 class TypeContext {
  public:
   // NOTE: this is a relatively slow path for child checking
   // Most types are already checked by the fast-path via reserved slot checking.
   bool DerivedFrom(uint32_t child_tindex, uint32_t parent_tindex) {
+    // invariance: child's type index is always bigger than its parent.
     if (child_tindex < parent_tindex) return false;
     if (child_tindex == parent_tindex) return true;
     {
@@ -50,9 +54,9 @@ class TypeContext {
     if (it != type_key2index_.end()) {
       return it->second;
     }
-    // try to allocate from parent's type table.
+    // try to allocate from parent's type table
     ICHECK_LT(parent_tindex, type_table_.size())
-        << " skey=" << skey << "static_index=" << static_tindex;
+        << " skey=" << skey << ", static_index=" << static_tindex;
     TypeInfo& pinfo = type_table_[parent_tindex];
     ICHECK_EQ(pinfo.index, parent_tindex);
 
@@ -73,14 +77,13 @@ class TypeContext {
           << "Conflicting static index " << static_tindex << " between "
           << type_table_[allocated_tindex].name << " and " << skey;
     } else if (pinfo.allocated_slots + num_slots <= pinfo.num_slots) {
-      // allocated the slot from parent's reserved pool
+      // allocate the slot from parent's reserved pool
       allocated_tindex = parent_tindex + pinfo.allocated_slots;
-      // update parent's state
       pinfo.allocated_slots += num_slots;
     } else {
       ICHECK(pinfo.child_slots_can_overflow)
           << "Reach maximum number of sub-classes for " << pinfo.name;
-      // allocated new entries.
+      // allocate new entries.
       allocated_tindex = type_counter_;
       type_counter_ += num_slots;
       ICHECK_LE(type_table_.size(), type_counter_);
@@ -114,7 +117,7 @@ class TypeContext {
     return type_table_[tindex].name_hash;
   }
 
-  uint32_t TypeKey2Index(const std::string& skey) {
+  size_t TypeKey2Index(const std::string& skey) {
     auto it = type_key2index_.find(skey);
     ICHECK(it != type_key2index_.end())
         << "Cannot find type " << skey
@@ -124,7 +127,6 @@ class TypeContext {
 
   void Dump(int min_children_count) {
     std::vector<int> num_children(type_table_.size(), 0);
-    // reverse accumulation so we can get total counts in a bottom-up manner.
     for (auto it = type_table_.rbegin(); it != type_table_.rend(); ++it) {
       if (it->index != 0) {
         num_children[it->parent_index] += num_children[it->index] + 1;
@@ -133,7 +135,7 @@ class TypeContext {
 
     for (const auto& info : type_table_) {
       if (info.index != 0 && num_children[info.index] >= min_children_count) {
-        std::cerr << "[" << info.index << "]" << info.name
+        std::cerr << "[" << info.index << "] " << info.name
                   << "\tparent=" << type_table_[info.parent_index].name
                   << "\tnum_child_slots=" << info.num_slots - 1
                   << "\tnum_children=" << num_children[info.index] << std::endl;
@@ -181,7 +183,7 @@ uint32_t Object::TypeKey2Index(const std::string& key) {
   return TypeContext::Global()->TypeKey2Index(key);
 }
 
-//CVM_REGISTER_GLOBAL("runtime.ObjectPtrHash").set_body([](ObjectRef obj) {
+// CVM_REGISTER_GLOBAL("runtime.ObjectPtrHash").set_body([](ObjectRef obj) {
 //  return static_cast<int64_t>(ObjectPtrHash()(obj));
 //})
 
