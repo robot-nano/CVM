@@ -743,8 +743,88 @@ class CVMArgsSetter {
     values_[i].v_int64 = static_cast<int64_t>(value);
     type_codes_[i] = kDLInt;
   }
+  CVM_ALWAYS_INLINE void operator()(size_t i, uint64_t value) const {
+    values_[i].v_int64 = static_cast<int64_t>(value);
+    ICHECK_LE(value, static_cast<uint64_t>(std::numeric_limits<int64_t>::max()));
+    type_codes_[i] = kDLInt;
+  }
+  CVM_ALWAYS_INLINE void operator()(size_t i, double value) const {
+    values_[i].v_float64 = value;
+    type_codes_[i] = kDLFloat;
+  }
+  CVM_ALWAYS_INLINE void operator()(size_t i, std::nullptr_t value) const {
+    values_[i].v_handle = value;
+    type_codes_[i] = kCVMNullptr;
+  }
+  CVM_ALWAYS_INLINE void operator()(size_t i, const CVMArgValue& value) const {
+    values_[i] = value.value_;
+    type_codes_[i] = value.type_code_;
+  }
+  CVM_ALWAYS_INLINE void operator()(size_t i, void* value) const {
+    values_[i].v_handle = value;
+    type_codes_[i] = kCVMOpaqueHandle;
+  }
+  CVM_ALWAYS_INLINE void operator()(size_t i, DLTensor* value) const {
+    values_[i].v_handle = value;
+    type_codes_[i] = kCVMDLTensorHandle;
+  }
+  CVM_ALWAYS_INLINE void operator()(size_t i, Device value) const {
+    values_[i].v_device = value;
+    type_codes_[i] = kDLDevice;
+  }
+  CVM_ALWAYS_INLINE void operator()(size_t i, const char* value) const {
+    values_[i].v_str = value;
+    type_codes_[i] = kCVMStr;
+  }
+  CVM_ALWAYS_INLINE void operator()(size_t i, const std::string& value) const {
+    values_[i].v_str = value.c_str();
+    type_codes_[i] = kCVMStr;
+  }
+  CVM_ALWAYS_INLINE void operator()(size_t i, const CVMByteArray& value) const {
+    values_[i].v_handle = const_cast<CVMByteArray*>(&value);
+    type_codes_[i] = kCVMBytes;
+  }
+  CVM_ALWAYS_INLINE void operator()(size_t i, const PackedFunc& value) const {
+    if (value != nullptr) {
+      values_[i].v_handle = const_cast<PackedFunc*>(&value);
+      type_codes_[i] = kCVMPackedFuncHandle;
+    } else {
+      values_[i].v_handle = nullptr;
+      type_codes_[i] = kCVMNullptr;
+    }
+  }
 
- private:
+  template <typename FType>
+  CVM_ALWAYS_INLINE void operator()(size_t i, const TypedPackedFunc<FType>& value) const {
+    operator()(i, value.packed());
+  }
+
+  void operator()(size_t i, const CVMRetValue& value) const {
+    if (value.type_code() == kCVMStr) {
+      values_[i].v_str = value.ptr<std::string>()->c_str();
+    } else {
+      ICHECK_NE(value.type_code(), kCVMBytes) << "not handled.";
+      values_[i] = value.value_;
+      type_codes_[i] = value.type_code();
+    }
+  }
+
+  template <typename TObjectRef,
+            typename = typename std::enable_if<std::is_base_of<ObjectRef, TObjectRef>::value>::type>
+  CVM_ALWAYS_INLINE void operator()(size_t i, const TObjectRef& value) const {
+    this->template SetObject(i, value);
+  }
+
+  template <typename TObjectRef,
+            typename = typename std::enable_if<std::is_base_of<
+                ObjectRef, typename std::remove_reference<TObjectRef>::type>::value>::type>
+  CVM_ALWAYS_INLINE void operator()(size_t i, TObjectRef&& value) const {
+    this->template SetObject(i, std::forward<TObjectRef>(value));
+  }
+
+  private:
+  template <typename TObjectRef>
+  inline void SetObject(size_t i, TObjectRef& value) const;
   CVMValue* values_;
   int* type_codes_;
 };
@@ -805,7 +885,7 @@ struct function_signature<R(Args...)> {
 };
 
 template <typename R, typename... Args>
-struct function_signature<R(*)(Args...)> {
+struct function_signature<R (*)(Args...)> {
   using FType = R(Args...);
   static_assert(!std::is_reference<R>::value, "TypedPackedFunc return reference");
 };

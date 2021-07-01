@@ -862,7 +862,40 @@ template <typename K, typename V,
           typename = typename std::enable_if<std::is_base_of<ObjectRef, K>::value>::type,
           typename = typename std::enable_if<std::is_base_of<ObjectRef, V>::value>::type>
 class Map : public ObjectRef {
+ public:
+  using key_type = K;
+  using mapped_type = V;
+  class iterator;
 
+  size_t size() const {
+
+  }
+
+  iterator begin() const {}
+  iterator end() const {}
+  iterator find(const K& key) const {}
+
+  class iterator {
+   public:
+    using iterator_category = std::bidirectional_iterator_tag;
+    using difference_type = int64_t;
+    using value_type = const std::pair<K, V>;
+    using pointer = value_type*;
+    using reference = value_type;
+
+    bool operator==(const iterator& other) const {}
+    bool operator!=(const iterator& other) const {}
+    pointer operator->() const = delete;
+    reference operator*() const {
+
+    }
+    iterator& operator++() {
+
+    }
+    iterator operator++(int) {
+
+    }
+  };
 };
 
 }  // namespace runtime
@@ -873,6 +906,7 @@ using runtime::Downcast;
 using runtime::IterAdapter;
 using runtime::make_object;
 using runtime::Map;
+using runtime::MapNode;
 using runtime::String;
 constexpr runtime::NullOptType NullOpt{};
 

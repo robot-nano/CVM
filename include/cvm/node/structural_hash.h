@@ -51,8 +51,42 @@ class SHashReducer {
  public:
   class Handler {
    public:
+    virtual void SHashReduceHashedValue(size_t hashed_value) = 0;
 
+    virtual void SHashReduce(const ObjectRef& key, bool map_free_vars) = 0;
+
+    virtual void SHashReduceFreeVar(const runtime::Object* var, bool map_free_vars) = 0;
+
+    virtual void LookupHashedValue(const ObjectRef& key, size_t* hashed_value) = 0;
+
+    virtual void MarkGraphNode() = 0;
   };
+
+  SHashReducer() = default;
+
+  explicit SHashReducer(Handler* handler, bool map_free_vars)
+      : handler_(handler), map_free_vars_(map_free_vars) {}
+
+  template <typename T,
+            typename = typename std::enable_if<!std::is_base_of<ObjectRef, T>::value>::type>
+  void operator()(const T& key) const {
+    // handle normal values.
+    handler_->SHashReduceHashedValue(BaseValueHash()(key));
+  }
+
+  void operator()(const ObjectRef& key) const { return handler_->SHashReduce(key, map_free_vars_); }
+
+  void DefHash(const ObjectRef& key) const { return handler_->SHashReduce(key, true); }
+
+  void FreeVarHashImpl(const runtime::Object* var) const {
+    handler_->SHashReduceFreeVar(var, map_free_vars_);
+  }
+
+  Handler* operator->() const { return handler_; }
+
+ private:
+  Handler* handler_;
+  bool map_free_vars_;
 };
 
 }  // namespace cvm

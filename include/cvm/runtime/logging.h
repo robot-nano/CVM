@@ -51,6 +51,7 @@ class InternalError : public Error {
 };
 
 }  // namespace runtime
+using runtime::Error;
 }  // namespace cvm
 
 #endif  // CVM_INCLUDE_SUPPORT_LOGGING_H_

@@ -94,6 +94,7 @@ class RemapVarSEqualHandler : public SEqualReducer::Handler {
     ICHECK(allow_push_to_stack_);
     task_stack_.emplace_back(std::move(pending_tasks_.back()));
     pending_tasks_.clear();
+    return RunTasks();
   }
 
  protected:
