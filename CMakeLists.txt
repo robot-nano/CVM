@@ -27,9 +27,6 @@ file(GLOB TEST_SRCS tests/cpp/*.cc)
 find_path(GTEST_INCLUDE_DIR gtest/gtest.h)
 find_library(GTEST_LIB gtest "$ENV{GTEST_LIB}")
 
-add_executable(temp temp.cpp)
-target_link_libraries(temp cvm ${GTEST_LIB} pthread)
-
 # Create the `cpptest` target if we can find GTest.  If not, we create dummy
 # targets that give the user an informative error message.
 if (GTEST_INCLUDE_DIR AND GTEST_LIB)
@@ -53,3 +50,5 @@ elseif (NOT GTEST_LIB)
 		COMMAND echo "Missing Google Test library"
 		COMMAND exit 1)
 endif ()
+
+add_executable(temp temp.cpp)
