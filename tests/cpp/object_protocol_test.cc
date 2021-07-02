@@ -52,7 +52,7 @@ CVM_REGISTER_OBJECT_TYPE(ObjectAA);
 TEST(ObjectHierarchy, Basic) {
   using namespace cvm::runtime;
   using namespace cvm::test;
-//
+
 //  ObjectRef refA(make_object<ObjectA>());
 //  ICHECK_EQ(refA->type_index(), ObjectA::RuntimeTypeIndex());
 }

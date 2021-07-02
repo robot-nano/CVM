@@ -9,7 +9,7 @@
 
 #ifndef CVM_DLL
 #ifdef _WIN32
-#ifdef TVM_EXPORTS
+#ifdef CVM_EXPORTS
 #define CVM_DLL __declspec(dllexport)
 #else
 #define CVM_DLL __declspec(dllimport)

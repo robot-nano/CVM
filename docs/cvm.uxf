@@ -1,14 +1,176 @@
 <?xml version="1.0" encoding="UTF-8"?><diagram program="umlet" version="13.3">
-  <zoom_level>10</zoom_level>
+  <zoom_level>7</zoom_level>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>220</x>
-      <y>270</y>
-      <w>100</w>
-      <h>30</h>
+      <x>0</x>
+      <y>497</y>
+      <w>280</w>
+      <h>336</h>
     </coordinates>
-    <panel_attributes>Object</panel_attributes>
+    <panel_attributes>Object
+--
+FDeleter: void(*)(Object*)
+
+__type_key: constexpr const char*_
+__type_child_slots : constexpr uint32_t_
+__type_child_slots_can_overflow : constexpr bool_
+__type_has_method_sequal_reduce : constexpr bool_
+__type_has_method_shash_reduce : constexpr bool_
+__type_index : constexpr uint32_t_
+type_index_: uint32_t
+--
+Object()
+Object(other: const Object&amp;)
+Object(other: Object&amp;&amp;)
+operator=(other: const Object&amp;) : Object&amp;
+operator=(other: Object&amp;&amp;) : Object&amp;
+
+type_index() const : uint32_t
+GetTypeKey() const : string
+GetTypeKeyHash() const : size_t
+
+template&lt;typename TargetType&gt;
+inline bool IsInstance() const;
+
+inline unique() const : bool
+_TypeIndex2Key(tindex: uint32_t) : string_
+_TypeIndex2KeyHash(tindex: uint32_t) : size_t_
+__GetOrAllocRuntimeTypeIndex() : uint32_t_
+_RuntimeTypeIndex() : uint32_t_</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>917</x>
+      <y>217</y>
+      <w>322</w>
+      <h>182</h>
+    </coordinates>
+    <panel_attributes>TypeContext
+--
+- mutex_ : std::mutex
+- type_counter_ : std::atomic&lt;uint32_t&gt;
+- type_table_ : vector&lt;TypeInfo&gt;
+- type_key2index_ : unordered_map&lt;string, uint32_t&gt;
+--
+_+ Global(): TypeContext*_
+- TypeContext() &lt;&lt;constructor&gt;&gt;
+
++ DerivedFrom(uint32_t,uint32_t)
++ GetOrAllocRuntimeTypeIndex(const string&amp;,uint32_t,uint32_t,uint32_t,bool): uint32_t
++ TypeIndex2Key(uint32_t): string
++ TypeIndex2KeyHash(uint32_t_t) : size_t
++ TypeKey2Index(const string&amp;) : uint32_t
++ Dump(int): void</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>994</x>
+      <y>49</y>
+      <w>175</w>
+      <h>119</h>
+    </coordinates>
+    <panel_attributes>&lt;&lt;struct&gt;&gt;
+TypeInfo
+--
+index: uint32_t
+parent_index: uint32_t
+num_slots: uint32_t
+allocated_slots: uint32_t
+child_slots_can_overflow: bool
+name: string
+name_hash: size_t</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1071</x>
+      <y>161</y>
+      <w>21</w>
+      <h>70</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;.</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;80.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>378</x>
+      <y>469</y>
+      <w>287</w>
+      <h>350</h>
+    </coordinates>
+    <panel_attributes>template=T
+          ObjectPtr (smart pinter)
+--
+- data_ : Object*
+--
++ ObjectPtr()
++ ObjectPtr(nullptr_t)
++ ObjectPtr(const ObjectPtr&lt;T&gt;&amp;)
+  &lt;U&gt;
++ ObjectPtr(const Object&lt;U&gt;&amp;)
++ ObjectPtr(ObjectPtr&lt;T&gt;&amp;&amp;)
+ &lt;Y&gt;
++ ObjectPtr(ObjectPtr&lt;Y&gt;&amp;&amp;)
++ ~ObjectPtr()
+- ObjectPtr(Object*) &lt;&lt;constructor from Object&gt;&gt;
+
++ swap(ObjectPtr&lt;T&gt;&amp;): void
++ get() const: T*
++ operator-&gt;() const: T*
++ operator*() const: T&amp;
++ operator=(const ObjectPtr&lt;T&gt;&amp;): ObjectPtr&lt;T&gt;&amp;
++ operator=(ObjectPtr&lt;T&gt;&amp;&amp;): ObjectPtr&lt;T&gt;&amp;
++ reset(): void
++ use_count(): int
++ unique(): bool
++ operator==(const ObjectPtr&lt;T&gt;&amp;): bool
++ operator!=(const ObjectPtr&lt;T&gt;&amp;): bool
++ operator==(nullptr_t): bool
++ operator!=(nullptr_t): bool
+_- MoveFromRValueRefArg(Object**): ObjectPtr&lt;T&gt;_</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>273</x>
+      <y>497</y>
+      <w>119</w>
+      <h>21</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;.</panel_attributes>
+    <additional_attributes>10.0;10.0;150.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>763</x>
+      <y>483</y>
+      <w>224</w>
+      <h>245</h>
+    </coordinates>
+    <panel_attributes>             ObjectRef (wrapper of ObjectPtr)
+--
+# data_: ObjectPtr&lt;Object&gt;
+--
++ ObjectRef()
++ ObjectRef(ObjectPtr&lt;Object&gt;)
++ same_as(const ObjectRef&amp;)const: bool
++ operator==(const ObjectRef&amp;)const: bool
++ operator!=(const ObjectRef&amp;)const: bool
++ operator&lt;(const ObjectRef&amp;)const: bool
++ defined() const: bool
++ get() const: const Object*
++ operator-&gt;() const: const Object*
++ unique() const: bool
++ use_count() const: int</panel_attributes>
     <additional_attributes/>
   </element>
 </diagram>
