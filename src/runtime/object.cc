@@ -29,7 +29,7 @@ class TypeContext {
     {
       std::lock_guard<std::mutex> lock(mutex_);
       ICHECK_LT(child_tindex, type_table_.size());
-      while (child_tindex < parent_tindex) {
+      while (child_tindex > parent_tindex) {
         child_tindex = type_table_[child_tindex].parent_index;
       }
     }

@@ -4,9 +4,9 @@
     <id>UMLClass</id>
     <coordinates>
       <x>0</x>
-      <y>497</y>
+      <y>476</y>
       <w>280</w>
-      <h>336</h>
+      <h>371</h>
     </coordinates>
     <panel_attributes>Object
 --
@@ -18,7 +18,10 @@ __type_child_slots_can_overflow : constexpr bool_
 __type_has_method_sequal_reduce : constexpr bool_
 __type_has_method_shash_reduce : constexpr bool_
 __type_index : constexpr uint32_t_
+
 type_index_: uint32_t
+ref_counter_: RefCounterType
+deleter_: FDeleter
 --
 Object()
 Object(other: const Object&amp;)
@@ -44,7 +47,7 @@ _RuntimeTypeIndex() : uint32_t_</panel_attributes>
     <id>UMLClass</id>
     <coordinates>
       <x>917</x>
-      <y>217</y>
+      <y>196</y>
       <w>322</w>
       <h>182</h>
     </coordinates>
@@ -70,7 +73,7 @@ _+ Global(): TypeContext*_
     <id>UMLClass</id>
     <coordinates>
       <x>994</x>
-      <y>49</y>
+      <y>28</y>
       <w>175</w>
       <h>119</h>
     </coordinates>
@@ -90,7 +93,7 @@ name_hash: size_t</panel_attributes>
     <id>Relation</id>
     <coordinates>
       <x>1071</x>
-      <y>161</y>
+      <y>140</y>
       <w>21</w>
       <h>70</h>
     </coordinates>
@@ -101,12 +104,13 @@ name_hash: size_t</panel_attributes>
     <id>UMLClass</id>
     <coordinates>
       <x>378</x>
-      <y>469</y>
+      <y>448</y>
       <w>287</w>
-      <h>350</h>
+      <h>406</h>
     </coordinates>
     <panel_attributes>template=T
-          ObjectPtr (smart pinter)
+ObjectPtr (smart pinter)
+/ref_counter定义在Object中，不同于普通smart_pointer/
 --
 - data_ : Object*
 --
@@ -134,14 +138,17 @@ name_hash: size_t</panel_attributes>
 + operator!=(const ObjectPtr&lt;T&gt;&amp;): bool
 + operator==(nullptr_t): bool
 + operator!=(nullptr_t): bool
-_- MoveFromRValueRefArg(Object**): ObjectPtr&lt;T&gt;_</panel_attributes>
+_- MoveFromRValueRefArg(Object**): ObjectPtr&lt;T&gt;_
+
+&lt;friend&gt; Object
+&lt;friend&gt; ObjectRef</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
     <id>Relation</id>
     <coordinates>
       <x>273</x>
-      <y>497</y>
+      <y>476</y>
       <w>119</w>
       <h>21</h>
     </coordinates>
@@ -152,7 +159,7 @@ _- MoveFromRValueRefArg(Object**): ObjectPtr&lt;T&gt;_</panel_attributes>
     <id>UMLClass</id>
     <coordinates>
       <x>763</x>
-      <y>483</y>
+      <y>455</y>
       <w>224</w>
       <h>245</h>
     </coordinates>
@@ -171,6 +178,88 @@ _- MoveFromRValueRefArg(Object**): ObjectPtr&lt;T&gt;_</panel_attributes>
 + operator-&gt;() const: const Object*
 + unique() const: bool
 + use_count() const: int</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>644</x>
+      <y>469</y>
+      <w>133</w>
+      <h>21</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;.</panel_attributes>
+    <additional_attributes>10.0;10.0;170.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1456</x>
+      <y>70</y>
+      <w>280</w>
+      <h>168</h>
+    </coordinates>
+    <panel_attributes>template=Derived
+ObjAllocatorBase
+--
+--
+&lt;T, ...Args&gt;
++ make_object(Args&amp;&amp;...): ObjectPtr&lt;T&gt;</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1498</x>
+      <y>343</y>
+      <w>168</w>
+      <h>42</h>
+    </coordinates>
+    <panel_attributes>SimpleAllocator
+--
+</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1568</x>
+      <y>231</y>
+      <w>231</w>
+      <h>126</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;-
+public ObjAllocatorBase&lt;SimpleAllocator&gt;</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;160.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1512</x>
+      <y>378</y>
+      <w>21</w>
+      <h>84</h>
+    </coordinates>
+    <panel_attributes>lt=-(+)
+</panel_attributes>
+    <additional_attributes>10.0;100.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1316</x>
+      <y>441</y>
+      <w>252</w>
+      <h>91</h>
+    </coordinates>
+    <panel_attributes>template=T
+Handler
+--
+--
+&lt;...Args&gt;
+_+ New(SimpleAllocator*, Args&amp;&amp;...) : T*_
+_+ Deleter() : Object::FDeleter_
+_- Deleter_() : void_</panel_attributes>
     <additional_attributes/>
   </element>
 </diagram>

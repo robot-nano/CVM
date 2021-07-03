@@ -126,8 +126,11 @@ class CVM_DLL Object {
   inline int use_count() const;
 
   bool DerivedFrom(uint32_t parent_tindex) const;
+  // friend class
   template <typename T>
   friend class ObjectPtr;
+  template <typename>
+  friend class ObjAllocatorBase;
 };
 
 /*!
@@ -261,6 +264,10 @@ class ObjectPtr {
   // friend class
   friend class Object;
   friend class ObjectRef;
+  template <typename>
+  friend class ObjectPtr;
+  template <typename>
+  friend class ObjAllocatorBase;
 };
 
 /*! \brief Base class of all object reference */
@@ -464,6 +471,15 @@ inline void Object::DecRef() {
 inline int Object::use_count() const { return ref_counter_; }
 
 #endif
+
+template <typename ObjectType>
+inline const ObjectType* ObjectRef::as() const {
+  if (data_ != nullptr && data_->IsInstance<ObjectType>()) {
+    return static_cast<ObjectType*>(data_.get());
+  } else {
+    return nullptr;
+  }
+}
 
 }  // namespace runtime
 }  // namespace cvm
