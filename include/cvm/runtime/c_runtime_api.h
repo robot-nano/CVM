@@ -87,9 +87,16 @@ CVM_DLL const char *CVMGetLastError(void);
 typedef int (*CVMPackedCFunc)(CVMValue* args, int* type_codes, int num_args,
                               CVMRetValueHandle ret, void* resource_handle);
 
+typedef void (*CVMPackedFuncFinalizer)(void* resource_handle);
+
+CVM_DLL int CVMFuncCreateFromCFunc(CVMPackedCFunc func, void* resource_handle,
+                                   CVMPackedFuncFinalizer fin, CVMFunctionHandle* out);
+
 CVM_DLL int CVMFuncRegisterGlobal(const char* name, CVMFunctionHandle f, int override);
 
 CVM_DLL int CVMFuncGetGlobal(const char *name, CVMFunctionHandle* out);
+
+CVM_DLL int CVMFuncListGlobalNames(int* out_size, const char*** out_array);
 
 CVM_DLL int CVMObjectTypeKey2Index(const char* type_key, unsigned* out_tindex);
 

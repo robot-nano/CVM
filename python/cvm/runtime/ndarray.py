@@ -1,6 +1,7 @@
 import cvm._ffi
 
 from cvm._ffi.base import _LIB, check_call, _FFI_MODE
+from . import _ffi_api
 
 try:
     if _FFI_MODE == "ctypes":
@@ -12,4 +13,8 @@ except (RuntimeError, ImportError) as error:
 
 @cvm._ffi.register_object("runtime.NDArray")
 class NDArray(NDArrayBase):
+    pass
+
+
+def empty(shape, dtype="float32"):
     pass

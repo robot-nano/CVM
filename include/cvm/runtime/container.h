@@ -283,7 +283,68 @@ class ArrayNode : public Object, public InplaceArrayBase<ArrayNode, ObjectRef> {
   const ObjectRef* begin() const { return static_cast<ObjectRef*>(InplaceArrayBase::AddressOf(0)); }
   /*! \return end constant iterator */
   const ObjectRef* end() const { return begin() + size_; }
-  void clear() {}
+  /*! \brief Release reference to all the elements */
+  void clear() { ShrinkBy(size_); }
+  /*!
+   * \brief Set i-th element of the array in-place
+   * \param i The index
+   * \param item The value to be set
+   */
+  void SetItem(int64_t i, ObjectRef item) { this->operator[](i) = std::move(item); }
+  /*!
+   * \brief Constructs a container and copy from another
+   * \param cap The capacity of the container
+   * \param from Source of the copy
+   * \return Ref-counted ArrayNode requested
+   */
+  static ObjectPtr<ArrayNode> CopyFrom(int64_t cap, ArrayNode* from) {
+    int64_t size = from->size_;
+    ICHECK_GE(cap, size) << "ValueError: not enough capacity";
+    ObjectPtr<ArrayNode> p = ArrayNode::Empty(cap);
+    ObjectRef* write = p->MutableBegin();
+    const ObjectRef* read = from->begin();
+    // To ensure safety, size is only incremented after the initialization succeeds.
+    for (int64_t& i = p->size_ = 0; i < size; ++i) {
+      new (write++) ObjectRef(*read++);
+    }
+    return p;
+  }
+  /*!
+   * \brief Constructs a container and move from another
+   * \param cap The capacity of the container
+   * \param from Source of the move
+   * \return Ref-Counted ArrayNode requested
+   */
+  static ObjectPtr<ArrayNode> MoveFrom(int64_t cap, ArrayNode* from) {
+    int64_t size = from->size_;
+    ICHECK_GE(cap, size) << "ValueError: not enough capacity";
+    ObjectPtr<ArrayNode> p = ArrayNode::Empty(cap);
+    ObjectRef* write = p->MutableBegin();
+    ObjectRef* read = from->MutableBegin();
+    for (int64_t& i = p->size_ = 0; i < size; ++i) {
+      new (write++) ObjectRef(std::move(*read++));
+    }
+    from->size_ = 0;
+    return p;
+  }
+  /*!
+   * \brief Constructs a container with n elements. Each element is a copy of val
+   * \param n The size of the container
+   * \param val The init value
+   * \return Ref-counted ArrayNode requested
+   */
+  static ObjectPtr<ArrayNode> CreateRepeated(int64_t n, const ObjectRef& val) {
+    ObjectPtr<ArrayNode> p = ArrayNode::Empty(n);
+    ObjectRef* itr = p->MutableBegin();
+    for (int64_t& i = p->size_ = 0; i < n; ++i) {
+      new (itr++) ObjectRef(val);
+    }
+    return p;
+  }
+
+  static constexpr const uint32_t _type_index = TypeIndex::kRuntimeArray;
+  static constexpr const char* _type_key = "Array";
+  CVM_DECLARE_FINAL_OBJECT_INFO(ArrayNode, Object);
 
  private:
   /*! \brief Size of initialized memory, used by InplaceArrayBase. */
@@ -304,8 +365,80 @@ class ArrayNode : public Object, public InplaceArrayBase<ArrayNode, ObjectRef> {
     p->size_ = 0;
     return p;
   }
-
-  ArrayNode* ShrinkBy(int64_t delta) {}
+  /*!
+   * \brief Inplace-initialize the elements starting idx from [first, last)
+   * \tparam IterType The type of iterator
+   * \param idx The starting point
+   * \param first Begin of iterator
+   * \param last End of iterator
+   * \return Self
+   */
+  template <typename IterType>
+  ArrayNode* InitRange(int64_t idx, IterType first, IterType last) {
+    ObjectRef* itr = MutableBegin() + idx;
+    for (; first != last; ++first) {
+      ObjectRef ref = *first;
+      new (itr++) ObjectRef(std::move(ref));
+    }
+    return this;
+  }
+  /*!
+   * \brief Move elements from right to left, requires src_begin > dst
+   * \param dst Destination
+   * \param src_begin The start point of copy (inclusive)
+   * \param src_end The end point of copy (exclusive)
+   * \return Self
+   */
+  ArrayNode* MoveElementsLeft(int64_t dst, int64_t src_begin, int64_t src_end) {
+    ObjectRef* from = MutableBegin() + src_begin;
+    ObjectRef* to = MutableBegin() + dst;
+    while (src_begin++ != src_end) {
+      *to++ = std::move(*from++);
+    }
+    return this;
+  }
+  /*!
+   * \brief Move elements from left to right, requires src_begin < dst
+   * \param dst Destination
+   * \param src_begin The start point of move (inclusive)
+   * \param src_end The end point of move (exclusive)
+   * \return Self
+   */
+  ArrayNode* MoveElementsRight(int64_t dst, int64_t src_begin, int64_t src_end) {
+    ObjectRef* from = MutableBegin() + src_end;
+    ObjectRef* to = MutableBegin() + (src_end - src_begin + dst);
+    while (src_begin++ != src_end) {
+      *--to = std::move(*--from);
+    }
+    return this;
+  }
+  /*!
+   * \brief Enlarges the size of the array
+   * \param delta Size enlarged, should be positive
+   * \param val Default value
+   * \return Self
+   */
+  ArrayNode* EnlargeBy(int64_t delta, const ObjectRef& val = ObjectRef(nullptr)) {
+    ObjectRef* itr = MutableEnd();
+    while (delta-- > 0) {
+      new (itr++) ObjectRef(val);
+      ++size_;
+    }
+    return this;
+  }
+  /*!
+   * \brief Shrinks the size of the the array
+   * \param delta Size shrinked, should be positive
+   * \return Self
+   */
+  ArrayNode* ShrinkBy(int64_t delta) {
+    ObjectRef* itr = MutableEnd();
+    while (delta-- > 0) {
+      (--itr)->ObjectRef::~ObjectRef();
+      --size_;
+    }
+    return this;
+  }
 
   int64_t size_;
   int64_t capacity_;
@@ -317,6 +450,252 @@ class ArrayNode : public Object, public InplaceArrayBase<ArrayNode, ObjectRef> {
 
   // CRTP parent class
   friend InplaceArrayBase<ArrayNode, ObjectRef>;
+
+  // Reference class
+  template <typename, typename>
+  friend class Array;
+
+  // To specialize make_object<ArrayNode>
+  friend ObjectPtr<ArrayNode> make_object<>();
+};
+
+/*!
+ * \brief Array, container representing a continuous sequence of ObjectRefs.
+ *
+ *  Array implements in-place copy-on-write semantics.
+ *
+ * As in typical copy-on-write, a method which would typically mutate the array
+ * instead opaquely copies the underlying container, and then acts on its copy.
+ *
+ * If the array has reference count equal to one, we directly update the
+ * container in place without copying. This is optimization is sound because
+ * when the reference count is equal to one this reference is guaranteed to be
+ * the sole pointer to the container.
+ *
+ * operator[] only provides const access, use Set to mutate the content.
+ * \tparam T The content ObjectRef type.
+ */
+template <typename T,
+          typename = typename std::enable_if<std::is_base_of<ObjectRef, T>::value>::type>
+class Array : public ObjectRef {
+ public:
+  using value_type = T;
+  /*! \brief default constructor */
+  Array() { data_ = ArrayNode::Empty(); }
+  /*!
+   * \brief move constructor
+   * \param other source
+   */
+  Array(Array<T>&& other) : ObjectRef() {  // NOLINT
+    data_ = std::move(other.data_);
+  }
+  /*!
+   * \brief copy constructor
+   * \param other source
+   */
+  Array(const Array<T>& other) : ObjectRef() {  // NOLINT
+    data_ = other.data_;
+  }
+  /*!
+   * \brief constructor from pointer
+   * \param n the container pointer
+   */
+  explicit Array(ObjectPtr<Object> n) : ObjectRef(n) {}
+  /*!
+   * \brief Constructor from iterator
+   * \tparam IterType The type of iterator
+   * \param first begin of iterator
+   * \param last end of iterator
+   */
+  template <typename IterType>
+  Array(IterType first, IterType last) {
+    Assign(first, last);
+  }
+  /*!
+   * \brief Constructor from initializer list
+   * \param init The initializer list
+   */
+  Array(std::initializer_list<T> init) { Assign(init.begin(), init.end()); }
+  /*!
+   * \brief Constructor from vector
+   * \param init The init vector
+   */
+  Array(const std::vector<T>& init) {  // NOLINT
+    Assign(init.begin(), init.end());
+  }
+  /*!
+   * \brief Constructs a container with n elements. Each element is a copy of val
+   * \param n The size of the container
+   * \param val The init value
+   */
+  explicit Array(const size_t n, const T& val) { data_ = ArrayNode::CreateRepeated(n, val); }
+  /*!
+   * \brief move assign operator
+   * \param other The source of assignment
+   * \return reference to self.
+   */
+  Array<T>& operator=(Array<T>&& other) {
+    data_ = std::move(other.data_);
+    return *this;
+  }
+  /*!
+   * \brief Copy assign operator
+   * \param other The source of assignment
+   * \return reference to self.
+   */
+  Array<T>& operator=(const Array<T>& other) {
+    data_ = other.data_;
+    return *this;
+  }
+
+ public:
+  // iterators
+  struct ValueConverter {
+    using ResultType = T;
+    static T convert(const ObjectRef& n) { return DowncastNoCheck<T>(n); }
+  };
+
+  using iterator = IterAdapter<ValueConverter, const ObjectRef*>;
+  using reverse_iterator = ReverseIterAdapter<ValueConverter, const ObjectRef*>;
+
+  /*! \return begin iterator */
+  iterator begin() const { return iterator(GetArrayNode()->begin()); }
+
+  /*! \return end iterator */
+  iterator end() const { return iterator(GetArrayNode()->end()); }
+
+  /*! \return rbegin iterator */
+  reverse_iterator rbegin() const {
+    // ArrayNode:end() is never nullptr
+    return reverse_iterator(GetArrayNode()->end() - 1);
+  }
+
+  /*! \return rend iterator */
+  reverse_iterator rend() const {
+    // ArrayNode:begin() is never nullptr
+    return reverse_iterator(GetArrayNode()->begin() - 1);
+  }
+
+  /*!
+   * \brief Immutably read i-th element from array.
+   * \param i The index
+   * \return the i-th element.
+   */
+  const T operator[](int64_t i) const {
+    ArrayNode* p = GetArrayNode();
+    ICHECK(p != nullptr) << "ValueError: cannot index a null array";
+    ICHECK(0 <= i && i < p->size_)
+        << "IndexError: indexing " << i << " on an array of size " << p->size_;
+    return DowncastNoCheck<T>(*(p->begin() + i));
+  }
+
+  /*! \return The size of the array */
+  size_t size() const {
+    ArrayNode* p = GetArrayNode();
+    return p == nullptr ? 0 : GetArrayNode()->size_;
+  }
+
+  /*! \brief The capacity of the array */
+  size_t capacity() const {
+    ArrayNode* p = GetArrayNode();
+    return p == nullptr ? 0 : p->capacity_;
+  }
+
+  /*! \return Whether array is empty */
+  bool empty() const { return size() == 0; }
+
+  /*! \return The first element of the array */
+  const T front() const {
+    ArrayNode* p = GetArrayNode();
+    ICHECK(p != nullptr) << "ValueError: cannot index a null array";
+    ICHECK_GT(p->size_, 0) << "IndexError: cannot index an empty array";
+    return DowncastNoCheck<T>(*(p->begin()));
+  }
+
+  /*! \return The underlying ArrayNode */
+  ArrayNode* GetArrayNode() const { return static_cast<ArrayNode*>(data_.get()); }
+
+  /*!
+   * \brief reset the array to content from iterator.
+   * \tparam IterType The type of iterator
+   * \param first begin of iterator
+   * \param last end of iterator
+   */
+  template <typename IterType>
+  void Assign(IterType first, IterType last) {
+    int64_t cap = std::distance(first, last);
+    ICHECK_GE(cap, 0) << "ValueError: cannot construct an Array of negative size";
+    ArrayNode* p = GetArrayNode();
+    if (p != nullptr && data_.unique() && p->capacity_ >= cap) {
+      // do not have to make new space
+      p->clear();
+    } else {
+      // create new space
+      data_ = ArrayNode::Empty(cap);
+      p = GetArrayNode();
+    }
+    // To ensure exception safety, size is only incremented after the initialization succeeds
+    ObjectRef* itr = p->MutableBegin();
+    for (int64_t& i = p->size_ = 0; i < cap; ++i, ++first, ++itr) {
+      new (itr) ObjectRef(*first);
+    }
+  }
+
+  /*!
+   * \brief Copy on write semantics
+   *  Do nothing if current handle is the unique copy of the array.
+   *  Otherwise make a new copy of the array to ensure the current handle
+   *  hold a unique copy.
+   *
+   * \return Handle to the internal node container(which guarantees to unique)
+   */
+  ArrayNode* CopyOnWrite() {
+    if (data_ == nullptr) {
+      return SwitchContainer(ArrayNode::kInitSize);
+    }
+    if (!data_.unique()) {
+      return SwitchContainer(capacity());
+    }
+    return static_cast<ArrayNode*>(data_.get());
+  }
+
+  /*! \brief specify container node */
+  using ContainerType = ArrayNode;
+
+ private:
+  /*!
+   * \brief Implement copy-on-write semantics, and ensures capacity is enough for extra elements.
+   * \param reverse_extra Number of extra slots needed
+   * \return ArrayNode pointer to the unique copy
+   */
+  ArrayNode* CopyOnWrite(int64_t reverse_extra) {
+    ArrayNode* p = GetArrayNode();
+    if (p == nullptr) {
+      // necessary to get around the constexpr address issue before c++17
+      const int64_t kInitSize = ArrayNode::kInitSize;
+      return SwitchContainer(std::max(kInitSize, reverse_extra));
+    }
+    if (p->capacity_ >= p->size_ + reverse_extra) {
+      return CopyOnWrite();
+    }
+    int64_t cap = p->capacity_ * ArrayNode::kIncFactor;
+    cap = std::max(cap, p->size_ + reverse_extra);
+    return SwitchContainer(cap);
+  }
+  /*!
+   * \brief Move or copy the ArrayNode to new
+   * \param capacity The capacity requirement of the new address
+   */
+  ArrayNode* SwitchContainer(int64_t capacity) {
+    if (data_ == nullptr) {
+      data_ = ArrayNode::Empty(capacity);
+    } else if (data_.unique()) {
+      data_ = ArrayNode::MoveFrom(capacity, GetArrayNode());
+    } else {
+      data_ = ArrayNode::CopyFrom(capacity, GetArrayNode());
+    }
+    return static_cast<ArrayNode*>(data_.get());
+  }
 };
 
 }  // namespace runtime

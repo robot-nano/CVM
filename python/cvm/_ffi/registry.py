@@ -8,6 +8,7 @@ try:
     if _FFI_MODE == "ctypes":
         raise ImportError()
     from ._cy3.core import _register_object
+    from ._cy3.core import _get_global_func
 except (RuntimeError, ImportError) as error:
     pass
 
@@ -34,3 +35,76 @@ def register_object(type_key=None):
         return register
 
     return register(type_key)
+
+
+def get_global_func(name, allow_missing=False):
+    """Get a global function by name
+
+    Parameters
+    ----------
+    name : str
+        The name of the global function
+
+    allow_missing : bool
+        Whether allow missing function or raise an error.
+
+    Returns
+    -------
+    func : PackedFunc
+        The function to be returned, None if function is missing
+    """
+    return _get_global_func(name, allow_missing)
+
+
+def list_global_func_names():
+    plist = ctypes.POINTER(ctypes.c_char_p)()
+    size = ctypes.c_uint()
+
+    check_call(_LIB.CVMFuncListGlobalNames(ctypes.byref(size), ctypes.byref(plist)))
+    fnames = []
+    for i in range(size.value):
+        fnames.append(py_str(plist[i]))
+    return fnames
+
+
+def _get_api(f):
+    flocal = f
+    flocal.is_global = True
+    return flocal
+
+
+def _init_api(namespace, target_module_name=None):
+    """Initialize api for a given module name.
+
+    Parameters
+    ----------
+    namespace : str
+        The namespace for the source registry
+
+    target_module_name : str
+        The target module name if different from namespace
+    """
+    target_module_name = target_module_name if target_module_name else namespace
+    if namespace.startswith("cvm."):
+        _init_api_prefix(target_module_name, namespace[4:])
+    else:
+        _init_api_prefix(target_module_name, namespace)
+
+
+def _init_api_prefix(module_name, prefix):
+    module = sys.modules[module_name]
+
+    for name in list_global_func_names():
+        if not name.startswith(prefix):
+            continue
+
+        fname = name[len(prefix) + 1:]
+        target_module = module
+
+        if fname.find(".") != -1:
+            continue
+        f = get_global_func(name)
+        ff = _get_api(f)
+        ff.__name__ = fname
+        ff.__doc__ = "CVM PackedFunc %s. " % fname
+        setattr(target_module, ff.__name__, ff)

@@ -131,6 +131,7 @@ class CVM_DLL Object {
   friend class ObjectPtr;
   template <typename>
   friend class ObjAllocatorBase;
+  friend class CVMRetValue;
 };
 
 /*!
@@ -268,6 +269,11 @@ class ObjectPtr {
   friend class ObjectPtr;
   template <typename>
   friend class ObjAllocatorBase;
+  friend class CVMRetValue;
+  template <typename RelayRefType, typename ObjType>
+  friend RelayRefType GetRef(const ObjType* ptr);
+  template <typename BaseType, typename ObjType>
+  friend ObjectPtr<BaseType> GetObjectPtr(ObjType* ptr);
 };
 
 /*! \brief Base class of all object reference */
@@ -479,6 +485,23 @@ inline const ObjectType* ObjectRef::as() const {
   } else {
     return nullptr;
   }
+}
+
+template <typename RefType, typename ObjType>
+inline RefType GetRef(const ObjType* ptr) {
+  static_assert(std::is_base_of<typename RefType::ContainerType, ObjType>::value,
+                "Can only cast to the ref of same container type");
+  if (!RefType::_type_is_nullable) {
+    ICHECK(ptr != nullptr);
+  }
+  return RefType(ObjectPtr<Object>(const_cast<Object*>(static_cast<const Object*>(ptr))));
+}
+
+template <typename BaseType, typename ObjType>
+inline ObjectPtr<BaseType> GetObjectPtr(ObjType* ptr) {
+  static_assert(std::is_base_of<BaseType, ObjType>::value,
+                "Can only cast to the ret of same container type");
+  return ObjectPtr<BaseType>(static_cast<Object*>(ptr));
 }
 
 }  // namespace runtime
