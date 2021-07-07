@@ -38,6 +38,8 @@ class StringRef;
 namespace cvm {
 namespace runtime {
 
+class CVMArgValue;
+
 /*! \brief String-aware ObjectRef hash functor */
 struct ObjectHash {
   /*!
@@ -278,7 +280,7 @@ class ArrayNode : public Object, public InplaceArrayBase<ArrayNode, ObjectRef> {
    * \param i The index
    * \return the i-th element.
    */
-  const ObjectRef at(int64_t i) const { return this->operator[](i); }
+  ObjectRef at(int64_t i) const { return this->operator[](i); }
   /*! \return begin constant iterator */
   const ObjectRef* begin() const { return static_cast<ObjectRef*>(InplaceArrayBase::AddressOf(0)); }
   /*! \return end constant iterator */
@@ -697,6 +699,229 @@ class Array : public ObjectRef {
     return static_cast<ArrayNode*>(data_.get());
   }
 };
+
+class StringObj : public Object {
+ public:
+  const char* data;
+  uint64_t size;
+
+  static constexpr const uint32_t _type_index = TypeIndex::kRuntimeString;
+  static constexpr const char* _type_key = "runtime.String";
+  CVM_DECLARE_FINAL_OBJECT_INFO(StringObj, Object);
+
+ private:
+  class FromStd;
+
+  friend class String;
+};
+
+class String : public ObjectRef {
+ public:
+  String() : String(std::string()) {}
+
+  String(std::string other);
+
+  String(const char* other)  // NOLINT
+      : String(std::string(other)) {}
+
+  inline String& operator=(std::string other);
+
+  inline String& operator=(const char* other);
+
+  int compare(const String& other) const {
+    return memncmp(data(), other.data(), size(), other.size());
+  }
+
+  int compare(const std::string& other) const {
+    return memncmp(data(), other.data(), size(), other.size());
+  }
+
+  const char* c_str() const { return get()->data; }
+
+  size_t size() const {
+    const auto* ptr = get();
+    return ptr->size;
+  }
+
+  size_t length() const { return size(); }
+
+  bool empty() const { return size() == 0; }
+
+  char at(size_t pos) const {
+    if (pos < size()) {
+      return data()[pos];
+    } else {
+      throw std::out_of_range("cvm::String index out of bounds");
+    }
+  }
+
+  const char* data() const { return get()->data; }
+
+  operator std::string() const { return std::string(get()->data, size()); }  // NOLINT
+
+  inline operator llvm::StringRef() const;
+
+  inline static bool CanConvertFrom(const CVMArgValue& val);
+
+  static size_t HashBytes(const char* data, size_t size) {
+#if CVM_USE_CXX17_STRING_VIEW_HASH
+    return std::hash<std::string_view>()(std::string_view(data, size));
+#elif CVM_USE_CXX14_STRING_VIEW_HASH
+    return std::hash<std::experimental::string_view>()(std::experimental::string_view(data, size));
+#else
+    return std::hash<std::string>()(std::string(data, size));
+#endif
+  }
+
+  CVM_DEFINE_NOTNULLABLE_OBJECT_REF_METHOD(String, ObjectRef, StringObj);
+
+ private:
+  static int memncmp(const char* lhs, const char* rhs, size_t lhs_count, size_t rhs_count);
+
+  static String Concat(const char* lhs, size_t lhs_size, const char* rhs, size_t rhs_size) {
+    std::string ret(lhs, lhs_size);
+    ret.append(rhs, rhs_size);
+    return String(ret);
+  }
+};
+
+class StringObj::FromStd : public StringObj {
+ public:
+  explicit FromStd(std::string other) : data_container(std::move(other)) {}
+
+ private:
+  std::string data_container;
+
+  friend class String;
+};
+
+inline String::String(std::string other) {
+  auto ptr = make_object<StringObj::FromStd>(std::move(other));
+  ptr->size = ptr->data_container.size();
+  ptr->data = ptr->data_container.data();
+  data_ = std::move(ptr);
+}
+
+inline String& String::operator=(std::string other) {
+  String replace(std::move(other));
+  data_.swap(replace.data_);
+  return *this;
+}
+
+inline String& String::operator=(const char* other) { return operator=(std::string(other)); }
+
+struct NullOptType {};
+
+/*!
+ * \brief Optional container that to represent to a Nullable variant of T.
+ * \tparam T The original ObjectRef.
+ *
+ * \code
+ *
+ *  Optional<String> opt0 = nullptr;
+ *  Optional<String> opt1 = String("xyz");
+ *  ICHECK(opt0 == nullptr);
+ *  ICHECK(opt1 == "xyz");
+ *
+ * \endcode
+ */
+template <typename T>
+class Optional : public ObjectRef {
+ public:
+  using ContainerType = typename T::ContainerType;
+  static_assert(std::is_base_of<ObjectRef, T>::value, "Optional is only defined for ObjectRef.");
+
+  Optional() = default;
+  Optional(const Optional<T>&) = default;
+  Optional(Optional<T>&&) = default;
+  Optional<T>& operator=(const Optional<T>&) = default;
+  Optional<T>& operator=(Optional<T>&&) = default;
+
+  explicit Optional(ObjectPtr<Object> ptr) : ObjectRef(ptr) {}
+
+  Optional(NullOptType) {}  // NOLINT(*)
+
+  explicit Optional(std::nullptr_t) {}
+
+  Optional<T>& operator=(std::nullptr_t) {
+    data_ = nullptr;
+    return *this;
+  }
+
+  Optional(T other)  // NOLINT
+      : ObjectRef(std::move(other)) {}
+  Optional<T>& operator=(T other) {
+    ObjectRef::operator=(std::move(other));
+    return *this;
+  }
+
+  explicit Optional(int val) = delete;
+  Optional<T>& operator=(int val) = delete;
+
+  T value() const {
+    ICHECK(data_ != nullptr);
+    return T(data_);
+  }
+
+  T value_or(T default_value) const { return data_ != nullptr ? T(data_) : default_value; }
+
+  explicit operator bool() const { return *this != nullptr; }
+
+  bool operator==(std::nullptr_t) const { return data_ == nullptr; }
+  bool operator!=(std::nullptr_t) const { return data_ != nullptr; }
+  auto operator==(const Optional<T>& other) const {
+    using RetType = decltype(value() == other.value());
+    if (same_as(other)) return RetType(true);
+    if (*this != nullptr && other != nullptr) {
+      return value() == other.value();
+    } else {
+      return RetType(false);
+    }
+  }
+  auto operator!=(const Optional<T>& other) const {
+    using RetType = decltype(value() != other.value());
+    if (same_as(other)) return RetType(false);
+    if (*this != nullptr && other != nullptr) {
+      return value() != other.value();
+    } else {
+      return RetType(true);
+    }
+  }
+  auto operator==(const T& other) const {
+    using RetType = decltype(value() == other);
+    if (same_as(other)) return RetType(true);
+    if (*this != nullptr) return value() == other;
+    return RetType(false);
+  }
+  auto operator!=(const T& other) const { return !(*this == other); }
+  template <typename U>
+  auto operator==(const U& other) const {
+    using RetType = decltype(value() == other);
+    if (*this == nullptr) return RetType(false);
+    return value() == other;
+  }
+  template <typename U>
+  auto operator!=(const U& other) const {
+    using RetType = decltype(value() != other);
+    if (*this == nullptr) return RetType(true);
+    return value() != other;
+  }
+  static constexpr bool _type_is_nullable = true;
+};
+
+class ClosureObj : public  Object {
+ public:
+  static constexpr const uint32_t _type_index = TypeIndex::kRuntimeClosure;
+  static constexpr const char* _type_key = "runtime.Closure";
+  CVM_DECLARE_BASE_OBJECT_INFO(ClosureObj, Object);
+};
+
+class Closure : public ObjectRef {
+ public:
+  CVM_DEFINE_OBJECT_REF_METHOD(Closure, ObjectRef, ClosureObj);
+};
+
+
 
 }  // namespace runtime
 }  // namespace cvm

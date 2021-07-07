@@ -359,7 +359,7 @@ class ObjectRef {
    *        after we successfully moved the field.
    * \param ref The reference data.
    */
-  static void FFIClearAfterMove(ObjectRef* ref) { ref->data_.data_ = nullptr;}
+  static void FFIClearAfterMove(ObjectRef* ref) { ref->data_.data_ = nullptr; }
   /*!
    * \brief Internal helper function get data_ as ObjectPtr of ObjectType.
    * \note Only used for internal dev purpose.
@@ -370,6 +370,8 @@ class ObjectRef {
   static ObjectPtr<ObjectType> GetDataPtr(const ObjectRef& ref) {
     return ObjectPtr<ObjectType>(ref.data_.data_);
   }
+
+  friend class CVMRetValue;
 };
 
 #define CVM_DECLARE_BASE_OBJECT_INFO(TypeName, ParentType)                                     \
@@ -408,6 +410,28 @@ class ObjectRef {
 
 #define CVM_REGISTER_OBJECT_TYPE(TypeName) \
   CVM_STR_CONCAT(CVM_OBJECT_REG_VAR_DEF, __COUNTER__) = TypeName::_GetOrAllocRuntimeTypeIndex()
+
+#define CVM_DEFINE_DEFAULT_COPY_MOVE_AND_ASSIGN(TypeName) \
+  TypeName(const TypeName& other) = default;              \
+  TypeName(TypeName&& other) = default;                   \
+  TypeName& operator=(const TypeName& other) = default;   \
+  TypeName& operator=(TypeName&& other) = default;
+
+#define CVM_DEFINE_OBJECT_REF_METHOD(TypeName, ParentType, ObjectName)                         \
+  TypeName() = default;                                                                        \
+  explicit TypeName(::cvm::runtime::ObjectPtr<::cvm::runtime::Object> n) : ParentType(n) {}    \
+  CVM_DEFINE_DEFAULT_COPY_MOVE_AND_ASSIGN(TypeName);                                           \
+  const ObjectName* operator->() const { return static_cast<const ObjectName*>(data_.get()); } \
+  const ObjectName* get() const { return operator->(); }                                       \
+  using ContainerType = ObjectName;
+
+#define CVM_DEFINE_NOTNULLABLE_OBJECT_REF_METHOD(TypeName, ParentType, ObjectName)             \
+  explicit TypeName(::cvm::runtime::ObjectPtr<::cvm::runtime::Object> n) : ParentType(n) {}    \
+  CVM_DEFINE_DEFAULT_COPY_MOVE_AND_ASSIGN(TypeName);                                           \
+  const ObjectName* operator->() const { return static_cast<const ObjectName*>(data_.get()); } \
+  const ObjectName* get() const { return operator->(); }                                       \
+  static constexpr bool _type_is_nullable = false;                                             \
+  using ContainerType = ObjectName;
 
 template <typename TargetType>
 inline bool Object::IsInstance() const {

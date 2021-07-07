@@ -1,20 +1,19 @@
 #include <iostream>
 
-class Base {
- public:
-  Base(const Base& other) { this->test(other); }
+typedef enum {
+  kDLInt = 0U,
+  kDLFloat = 1U,
+} DLDataType;
 
- private:
-  template<typename T>
-  void test(const T& other) {
-  }
-
-  template<typename T>
-  void SwitchToClass(T v) {
-
-  }
-};
+typedef enum {
+  kInt = kDLInt,
+  kNull = 1U,
+} CVMType;
 
 int main(int argc, char **argv) {
-
+  int mem[2];
+  mem[0] = kDLFloat;
+  if (mem[0] == kNull) {
+    std::cout << "equal" << std::endl;
+  }
 }

@@ -100,13 +100,13 @@ class SimpleAllocator : public ObjAllocatorBase<SimpleAllocator> {
 
 template <typename T, typename... Args>
 inline ObjectPtr<T> make_object(Args&&... args) {
-  return SimpleAllocator().template make_object<T>(std::forward<Args>(args)...);
+  return SimpleAllocator().make_object<T>(std::forward<Args>(args)...);
 }
 
 template <typename ArrayType, typename ElemType, typename... Args>
 inline ObjectPtr<ArrayType> make_inplace_array_object(size_t num_elems, Args&&... args) {
-  return SimpleAllocator().template make_inplace_array<ArrayType, ElemType>(
-      num_elems, std::forward<Args>(args)...);
+  return SimpleAllocator().make_inplace_array<ArrayType, ElemType>(num_elems,
+                                                                   std::forward<Args>(args)...);
 }
 
 }  // namespace runtime

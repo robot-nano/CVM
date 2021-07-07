@@ -38,7 +38,7 @@ class NDArray : public ObjectRef {
 
   inline static void FFIDecRef(CVMArrayHandle handle);
 
-  inline static CVMArrayHandle FFIGetHandle(const ObjectRef &nd);
+  inline static CVMArrayHandle FFIGetHandle(const ObjectRef& nd);
 };
 
 class NDArray::ContainerBase {};
@@ -49,17 +49,21 @@ class NDArray::Container : public Object, public NDArray::ContainerBase {
 
 inline ObjectPtr<Object> NDArray::FFIDataFromHandle(CVMArrayHandle handle) {
   return GetObjectPtr<Object>(
-      static_cast<NDArray::Container *>(reinterpret_cast<NDArray::ContainerBase *>(handle)));
+      static_cast<NDArray::Container*>(reinterpret_cast<NDArray::ContainerBase*>(handle)));
 }
 
 inline void NDArray::FFIDecRef(CVMArrayHandle handle) {
-  static_cast<NDArray::Container *>(reinterpret_cast<NDArray::ContainerBase *>(handle))->DecRef();
+  static_cast<NDArray::Container*>(reinterpret_cast<NDArray::ContainerBase*>(handle))->DecRef();
 }
 
-inline CVMArrayHandle NDArray::FFIGetHandle(const ObjectRef &nd) {
-  auto ptr = reinterpret_cast<CVMArrayHandle>(static_cast<NDArray::ContainerBase *>(
-      static_cast<NDArray::Container *>(const_cast<Object *>(nd.get()))));
+inline CVMArrayHandle NDArray::FFIGetHandle(const ObjectRef& nd) {
+  auto ptr = reinterpret_cast<CVMArrayHandle>(static_cast<NDArray::ContainerBase*>(
+      static_cast<NDArray::Container*>(const_cast<Object*>(nd.get()))));
   return ptr;
+}
+
+inline Object* CVMArrayHandleToObjectHandle(CVMArrayHandle handle) {
+  return static_cast<NDArray::Container*>(reinterpret_cast<NDArray::ContainerBase*>(handle));
 }
 
 }  // namespace runtime
