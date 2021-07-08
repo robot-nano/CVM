@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8"?><diagram program="umlet" version="13.3">
+  <zoom_level>9</zoom_level>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>9</x>
+      <y>0</y>
+      <w>189</w>
+      <h>279</h>
+    </coordinates>
+    <panel_attributes>&lt;&lt;enum&gt;&gt;
+CVMArgTypeCode
+--
+kInt
+kUInt
+kFloat
+kCVMOpaqueHandle
+kCVMNullptr
+kCVMDataType
+kDLDevice
+kCVMDLTensorHandle
+kCVMObjectHandle
+kCVMModuleHandle
+kCVMPackedFuncHandle
+kCVMStr
+kCVMBytes
+kCVMNDArrayHandle
+kCVMObjectRValueRefArg</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>198</x>
+      <y>414</y>
+      <w>144</w>
+      <h>81</h>
+    </coordinates>
+    <panel_attributes>bg=orange
+&lt;&lt;struct&gt;&gt;
+DLDevice
+--
+device_type: int
+device_id: int</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>0</x>
+      <y>414</y>
+      <w>126</w>
+      <h>90</h>
+    </coordinates>
+    <panel_attributes>bg=orange
+&lt;&lt;struct&gt;&gt;
+DLDataType
+--
+code: uint8_t
+bits: uint8_t
+lanes: uint16_t</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>315</x>
+      <y>522</y>
+      <w>171</w>
+      <h>162</h>
+    </coordinates>
+    <panel_attributes>bg=orange
+&lt;&lt;struct&gt;&gt;
+DLTensor
+--
+data: void*
+device: DLDevice
+ndim: int
+dtype: DLDataType
+shape: int64*
+strides: int64_t*
+byte_offset: uint64_t</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>54</x>
+      <y>495</y>
+      <w>279</w>
+      <h>135</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;.</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;130.0;290.0;130.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>252</x>
+      <y>486</y>
+      <w>81</w>
+      <h>117</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;.</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;110.0;70.0;110.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>423</x>
+      <y>756</y>
+      <w>297</w>
+      <h>108</h>
+    </coordinates>
+    <panel_attributes>bg=orange
+&lt;&lt;struct&gt;&gt;
+DLManagedTensor
+--
+dl_tensor: DLTensor
+manager_ctx: void*
+void (*deleter)(DLManagerTensor* self)</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>351</x>
+      <y>675</y>
+      <w>90</w>
+      <h>144</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;.</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;140.0;80.0;140.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>351</x>
+      <y>243</y>
+      <w>234</w>
+      <h>144</h>
+    </coordinates>
+    <panel_attributes>bg=orange
+&lt;&lt;union&gt;&gt;
+CVMValue
+--
+v_int64: int64_t
+v_float64: double
+v_handle: void*
+v_str: const char*
+v_type: DLDataType
+v_device: DLDevice</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>288</x>
+      <y>360</y>
+      <w>81</w>
+      <h>72</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;.</panel_attributes>
+    <additional_attributes>10.0;60.0;10.0;10.0;70.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>54</x>
+      <y>342</y>
+      <w>315</w>
+      <h>90</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;.</panel_attributes>
+    <additional_attributes>10.0;80.0;10.0;10.0;330.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>9</x>
+      <y>774</y>
+      <w>270</w>
+      <h>99</h>
+    </coordinates>
+    <panel_attributes>&lt;&lt;struct&gt;&gt;
+CVMObject
+--
+type_index_: uint32_t
+ref_counter_: int32_t
+void (*deleter_)(CVMObject* self)</panel_attributes>
+    <additional_attributes/>
+  </element>
+</diagram>

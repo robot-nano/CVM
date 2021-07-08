@@ -45,10 +45,10 @@ __version__ = get_describe_version(__version__)
 
 
 def config_cython():
-    """Try to configure cython and return cython configuration"""
-    if FFI_MODE not in ("cython"):
+    """Try to configure _cython and return _cython configuration"""
+    if FFI_MODE not in ("_cython"):
         if os.name == "nt" and not CONDA_BUILD:
-            print("WARNING: Cython is not supported on Windows, will compile without cython module")
+            print("WARNING: Cython is not supported on Windows, will compile without _cython module")
             return []
         sys_cflags = sysconfig.get_config_var("CFLAGS")
         if sys_cflags and "i386" in sys_cflags and "x86_64" in sys_cflags:

@@ -87,3 +87,13 @@ int CVMFuncListGlobalNames(int* out_size, const char*** out_array) {
   *out_size = static_cast<int>(ret_vec.size());
   return 0;
 }
+
+int CVMFuncGetGlobal(const char* name, CVMFunctionHandle* out) {
+  const cvm::runtime::PackedFunc* fp = cvm::runtime::Registry::Get(name);
+  if (fp != nullptr) {
+    *out = new cvm::runtime::PackedFunc(*fp);
+  } else {
+    *out = nullptr;
+  }
+  return 0;
+}

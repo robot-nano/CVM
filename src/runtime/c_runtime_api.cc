@@ -4,6 +4,7 @@
 
 #include <cvm/runtime/c_runtime_api.h>
 #include <cvm/runtime/packed_func.h>
+#include <cvm/runtime/registry.h>
 
 namespace cvm {
 namespace runtime {
@@ -46,5 +47,4 @@ int CVMFuncCreateFromCFunc(CVMPackedCFunc func, void* resource_handle, CVMPacked
 }  // namespace runtime
 }  // namespace cvm
 
-
-const char *CVMGetLastError() { return "GetLastError"; }
+const char* CVMGetLastError() { return "GetLastError"; }
