@@ -583,6 +583,41 @@ template <typename F, typename... Args>
 inline void for_each(const F& f, Args&&... args) {
   for_each_dispatcher<sizeof...(Args) == 0, 0, F>::run(f, std::forward<Args>(args)...);
 }
+
+template <typename T>
+struct func_signature_helper {
+  using FType = void;
+};
+
+template <typename T, typename R, typename... Args>
+struct func_signature_helper<R (T::*)(Args...)> {
+  using FType = R(Args...);
+  static_assert(!std::is_reference<R>::value, "TypedPackedFunc return reference");
+};
+
+template <typename T, typename R, typename... Args>
+struct func_signature_helper<R (T::*)(Args...) const> {
+  using FType = R(Args...);
+  static_assert(!std::is_reference<R>::value, "TypedPackedFunc return reference");
+};
+
+template <typename T>
+struct function_signature {
+  using FType = typename func_signature_helper<decltype(&T::operator())>::type;
+};
+
+template <typename R, typename... Args>
+struct func_signature_helper<R(Args...)> {
+  using FType = R(Args...);
+  static_assert(!std::is_reference<R>::value, "TypedPackedFunc return reference");
+};
+
+template <typename R, typename... Args>
+struct func_signature_helper<R (*)(Args...)> {
+  using FType = R(Args...);
+  static_assert(!std::is_reference<R>::value, "TypedPackedFunc return reference");
+};
+
 }  // namespace detail
 
 class CVMArgsSetter {
@@ -843,7 +878,7 @@ inline TObjectRef CVMPODValue_::AsObjectRef() const {
         << "Expect a not null value of " << ContainerType::_type_key;
     return TObjectRef(ObjectPtr<Object>(nullptr));
   }
-  //TODO
+  // TODO
 }
 
 template <typename T, typename>

@@ -45,3 +45,6 @@ int CVMFuncCreateFromCFunc(CVMPackedCFunc func, void* resource_handle, CVMPacked
 
 }  // namespace runtime
 }  // namespace cvm
+
+
+const char *CVMGetLastError() { return "GetLastError"; }
