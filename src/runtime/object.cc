@@ -8,6 +8,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include "runtime_base.h"
+
 namespace cvm {
 namespace runtime {
 
@@ -176,3 +178,15 @@ uint32_t Object::TypeKey2Index(const std::string& key) {
 
 }  // namespace runtime
 }  // namespace cvm
+
+int CVMObjectGetTypeIndex(CVMObjectHandle obj, unsigned* out_tindex) {
+  API_BEGIN();
+  ICHECK(obj != nullptr);
+  out_tindex[0] = static_cast<cvm::runtime::Object*>(obj)->type_index();
+  API_END();
+}
+
+int CVMObjectTypeKey2Index(const char* type_key, unsigned* out_tindex) {
+  API_BEGIN();
+  API_END();
+}

@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?><diagram program="umlet" version="13.3">
-  <zoom_level>9</zoom_level>
+  <zoom_level>7</zoom_level>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>9</x>
+      <x>259</x>
       <y>0</y>
-      <w>189</w>
-      <h>279</h>
+      <w>147</w>
+      <h>217</h>
     </coordinates>
     <panel_attributes>&lt;&lt;enum&gt;&gt;
 CVMArgTypeCode
@@ -31,10 +31,10 @@ kCVMObjectRValueRefArg</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>198</x>
-      <y>414</y>
-      <w>144</w>
-      <h>81</h>
+      <x>406</x>
+      <y>322</y>
+      <w>112</w>
+      <h>63</h>
     </coordinates>
     <panel_attributes>bg=orange
 &lt;&lt;struct&gt;&gt;
@@ -47,10 +47,10 @@ device_id: int</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>0</x>
-      <y>414</y>
-      <w>126</w>
-      <h>90</h>
+      <x>252</x>
+      <y>322</y>
+      <w>98</w>
+      <h>70</h>
     </coordinates>
     <panel_attributes>bg=orange
 &lt;&lt;struct&gt;&gt;
@@ -64,10 +64,10 @@ lanes: uint16_t</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>315</x>
-      <y>522</y>
-      <w>171</w>
-      <h>162</h>
+      <x>497</x>
+      <y>406</y>
+      <w>133</w>
+      <h>126</h>
     </coordinates>
     <panel_attributes>bg=orange
 &lt;&lt;struct&gt;&gt;
@@ -85,10 +85,10 @@ byte_offset: uint64_t</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>54</x>
-      <y>495</y>
-      <w>279</w>
-      <h>135</h>
+      <x>294</x>
+      <y>385</y>
+      <w>217</w>
+      <h>105</h>
     </coordinates>
     <panel_attributes>lt=&lt;.</panel_attributes>
     <additional_attributes>10.0;10.0;10.0;130.0;290.0;130.0</additional_attributes>
@@ -96,10 +96,10 @@ byte_offset: uint64_t</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>252</x>
-      <y>486</y>
-      <w>81</w>
-      <h>117</h>
+      <x>448</x>
+      <y>378</y>
+      <w>63</w>
+      <h>91</h>
     </coordinates>
     <panel_attributes>lt=&lt;.</panel_attributes>
     <additional_attributes>10.0;10.0;10.0;110.0;70.0;110.0</additional_attributes>
@@ -107,10 +107,10 @@ byte_offset: uint64_t</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>423</x>
-      <y>756</y>
-      <w>297</w>
-      <h>108</h>
+      <x>581</x>
+      <y>588</y>
+      <w>231</w>
+      <h>84</h>
     </coordinates>
     <panel_attributes>bg=orange
 &lt;&lt;struct&gt;&gt;
@@ -124,10 +124,10 @@ void (*deleter)(DLManagerTensor* self)</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>351</x>
-      <y>675</y>
-      <w>90</w>
-      <h>144</h>
+      <x>525</x>
+      <y>525</y>
+      <w>70</w>
+      <h>112</h>
     </coordinates>
     <panel_attributes>lt=&lt;.</panel_attributes>
     <additional_attributes>10.0;10.0;10.0;140.0;80.0;140.0</additional_attributes>
@@ -135,10 +135,10 @@ void (*deleter)(DLManagerTensor* self)</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>351</x>
-      <y>243</y>
-      <w>234</w>
-      <h>144</h>
+      <x>525</x>
+      <y>189</y>
+      <w>182</w>
+      <h>112</h>
     </coordinates>
     <panel_attributes>bg=orange
 &lt;&lt;union&gt;&gt;
@@ -155,10 +155,10 @@ v_device: DLDevice</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>288</x>
-      <y>360</y>
-      <w>81</w>
-      <h>72</h>
+      <x>476</x>
+      <y>280</y>
+      <w>63</w>
+      <h>56</h>
     </coordinates>
     <panel_attributes>lt=&lt;.</panel_attributes>
     <additional_attributes>10.0;60.0;10.0;10.0;70.0;10.0</additional_attributes>
@@ -166,10 +166,10 @@ v_device: DLDevice</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>54</x>
-      <y>342</y>
-      <w>315</w>
-      <h>90</h>
+      <x>294</x>
+      <y>266</y>
+      <w>245</w>
+      <h>70</h>
     </coordinates>
     <panel_attributes>lt=&lt;.</panel_attributes>
     <additional_attributes>10.0;80.0;10.0;10.0;330.0;10.0</additional_attributes>
@@ -177,10 +177,10 @@ v_device: DLDevice</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>9</x>
-      <y>774</y>
-      <w>270</w>
-      <h>99</h>
+      <x>259</x>
+      <y>602</y>
+      <w>210</w>
+      <h>77</h>
     </coordinates>
     <panel_attributes>&lt;&lt;struct&gt;&gt;
 CVMObject
@@ -188,6 +188,640 @@ CVMObject
 type_index_: uint32_t
 ref_counter_: int32_t
 void (*deleter_)(CVMObject* self)</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>21</x>
+      <y>924</y>
+      <w>364</w>
+      <h>105</h>
+    </coordinates>
+    <panel_attributes>ObjectBase
+--
+chandle: void*
+handle
+ __get__(self)
+ __set__(self, value)
+--
+- _set_handle(self, handle)
+- __init_handle_by_constructor__(self, fconstructor, *args)</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>399</x>
+      <y>924</y>
+      <w>371</w>
+      <h>63</h>
+    </coordinates>
+    <panel_attributes>PyNativeObject
+--
+__slots__ = []
+--
+__init_cvm_object_by_constructor__(self, fconstructor, *args)</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>133</x>
+      <y>1071</y>
+      <w>217</w>
+      <h>161</h>
+    </coordinates>
+    <panel_attributes>NDArrayBase
+--
+chandle: DLTensor*
+c_is_view: int
+_cvm_handle:
+ __get__(self)
+handle:
+ __get__(self)
+ __set__(self, value)
+is_view:
+ __get__(self)
+shape: tuple
+--
++ __init__(self, handle, is_view)</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>413</x>
+      <y>1085</y>
+      <w>210</w>
+      <h>140</h>
+    </coordinates>
+    <panel_attributes>PackedFuncBase
+--
+chandle: CVMPackedFuncHandle
+is_global: int
+ __get__(self)
+ __set__(self, value)
+handle
+ __get__(self)
+ __set__(self, value)
+--
+__init__(self, handle, is_global)
+__call__(self, *args)</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLSpecialState</id>
+    <coordinates>
+      <x>154</x>
+      <y>1428</y>
+      <w>14</w>
+      <h>14</h>
+    </coordinates>
+    <panel_attributes>type=initial</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>154</x>
+      <y>1435</y>
+      <w>21</w>
+      <h>77</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;-</panel_attributes>
+    <additional_attributes>10.0;90.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLState</id>
+    <coordinates>
+      <x>98</x>
+      <y>1498</y>
+      <w>126</w>
+      <h>28</h>
+    </coordinates>
+    <panel_attributes>bg=red
+@cvm.register_object</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLSpecialState</id>
+    <coordinates>
+      <x>147</x>
+      <y>1561</y>
+      <w>28</w>
+      <h>28</h>
+    </coordinates>
+    <panel_attributes>bg=green
+type=decision</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>154</x>
+      <y>1519</y>
+      <w>21</w>
+      <h>56</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;-</panel_attributes>
+    <additional_attributes>10.0;60.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>154</x>
+      <y>1582</y>
+      <w>133</w>
+      <h>105</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;-
+[miss "_type_index"]</panel_attributes>
+    <additional_attributes>10.0;130.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>168</x>
+      <y>1568</y>
+      <w>245</w>
+      <h>371</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;-
+m2=[hasattr "_type_index"]</panel_attributes>
+    <additional_attributes>260.0;510.0;330.0;510.0;330.0;10.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLState</id>
+    <coordinates>
+      <x>224</x>
+      <y>1904</y>
+      <w>126</w>
+      <h>49</h>
+    </coordinates>
+    <panel_attributes>bg=blue
+_register_object
+--
+(cython)</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLSpecialState</id>
+    <coordinates>
+      <x>147</x>
+      <y>1673</y>
+      <w>28</w>
+      <h>28</h>
+    </coordinates>
+    <panel_attributes>bg=green
+type=decision</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>168</x>
+      <y>1680</y>
+      <w>140</w>
+      <h>112</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;-
+m1=check_call
+m2=[!_RUNTIME_ONLY]</panel_attributes>
+    <additional_attributes>90.0;140.0;170.0;10.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>49</x>
+      <y>1680</y>
+      <w>112</w>
+      <h>112</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;-
+m2=[_RUNTIME_ONLY]</panel_attributes>
+    <additional_attributes>90.0;140.0;10.0;10.0;140.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLSpecialState</id>
+    <coordinates>
+      <x>42</x>
+      <y>1911</y>
+      <w>28</w>
+      <h>28</h>
+    </coordinates>
+    <panel_attributes>bg=green
+type=decision</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLSpecialState</id>
+    <coordinates>
+      <x>147</x>
+      <y>2065</y>
+      <w>14</w>
+      <h>14</h>
+    </coordinates>
+    <panel_attributes>type=final</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLState</id>
+    <coordinates>
+      <x>63</x>
+      <y>1778</y>
+      <w>189</w>
+      <h>35</h>
+    </coordinates>
+    <panel_attributes>bg=blue
+CVMObjectTypeKindex2Index</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>49</x>
+      <y>1932</y>
+      <w>112</w>
+      <h>154</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;-
+[ret!=0]</panel_attributes>
+    <additional_attributes>140.0;200.0;10.0;200.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>49</x>
+      <y>1806</y>
+      <w>77</w>
+      <h>119</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;-</panel_attributes>
+    <additional_attributes>10.0;150.0;90.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>224</x>
+      <y>1806</y>
+      <w>77</w>
+      <h>112</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;-</panel_attributes>
+    <additional_attributes>90.0;140.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>154</x>
+      <y>1946</y>
+      <w>147</w>
+      <h>140</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;-</panel_attributes>
+    <additional_attributes>10.0;180.0;190.0;180.0;190.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>63</x>
+      <y>1911</y>
+      <w>175</w>
+      <h>28</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;-
+[ret==0]</panel_attributes>
+    <additional_attributes>230.0;20.0;10.0;20.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLObject</id>
+    <coordinates>
+      <x>0</x>
+      <y>1407</y>
+      <w>434</w>
+      <h>693</h>
+    </coordinates>
+    <panel_attributes>register_object
+valign=top</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLState</id>
+    <coordinates>
+      <x>1022</x>
+      <y>1729</y>
+      <w>168</w>
+      <h>35</h>
+    </coordinates>
+    <panel_attributes>bg=red
+*convert_to_cvm_func*
+(pyfunc: object)</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLSpecialState</id>
+    <coordinates>
+      <x>1106</x>
+      <y>1645</y>
+      <w>14</w>
+      <h>14</h>
+    </coordinates>
+    <panel_attributes>type=initial
+</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1106</x>
+      <y>1645</y>
+      <w>91</w>
+      <h>98</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;-
+register_func</panel_attributes>
+    <additional_attributes>10.0;120.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLState</id>
+    <coordinates>
+      <x>994</x>
+      <y>1806</y>
+      <w>266</w>
+      <h>70</h>
+    </coordinates>
+    <panel_attributes>bg=yellow
+*CVMFuncCreateFromCFunc*
+(args:CVMValue*, type_codes:int*,
+num_args:int, ret:CVMRetValueHandle, 
+fhandle:void*)
+type=sender</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1106</x>
+      <y>1757</y>
+      <w>21</w>
+      <h>63</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;-</panel_attributes>
+    <additional_attributes>10.0;70.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1106</x>
+      <y>1869</y>
+      <w>21</w>
+      <h>63</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;-</panel_attributes>
+    <additional_attributes>10.0;70.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLState</id>
+    <coordinates>
+      <x>1043</x>
+      <y>1918</y>
+      <w>133</w>
+      <h>35</h>
+    </coordinates>
+    <panel_attributes>bg=blue
+make_packed_func</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLState</id>
+    <coordinates>
+      <x>1575</x>
+      <y>1484</y>
+      <w>434</w>
+      <h>35</h>
+    </coordinates>
+    <panel_attributes>*ConstructorCall*
+(constructor_handle: void*, type_code: int, args:tuple, handle:void**)</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLState</id>
+    <coordinates>
+      <x>1407</x>
+      <y>1561</y>
+      <w>399</w>
+      <h>42</h>
+    </coordinates>
+    <panel_attributes>FuncCall
+(chandle: void*, args: tuple, ret_val: CVMValue*, ret_code: int*)</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1589</x>
+      <y>1512</y>
+      <w>210</w>
+      <h>63</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;-</panel_attributes>
+    <additional_attributes>10.0;70.0;280.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLState</id>
+    <coordinates>
+      <x>1393</x>
+      <y>1743</y>
+      <w>399</w>
+      <h>70</h>
+    </coordinates>
+    <panel_attributes>bg=blue
+*CVMFuncCall*
+(func: CVMFunctionHandle, arg_values: CVMValue*, 
+type_codes: int*, num_args: int, ret_val: CVMValue*,
+ret_type_code: int*)
+</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1582</x>
+      <y>1701</y>
+      <w>21</w>
+      <h>56</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;-</panel_attributes>
+    <additional_attributes>10.0;60.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLState</id>
+    <coordinates>
+      <x>1351</x>
+      <y>1484</y>
+      <w>196</w>
+      <h>35</h>
+    </coordinates>
+    <panel_attributes>PackedFuncBase.__call__(*args)</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1428</x>
+      <y>1512</y>
+      <w>182</w>
+      <h>63</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;-</panel_attributes>
+    <additional_attributes>240.0;70.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLState</id>
+    <coordinates>
+      <x>1519</x>
+      <y>1652</y>
+      <w>154</w>
+      <h>56</h>
+    </coordinates>
+    <panel_attributes>make_arg
+bg=yellow
+type=sender</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1589</x>
+      <y>1596</y>
+      <w>21</w>
+      <h>70</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;-</panel_attributes>
+    <additional_attributes>10.0;80.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLState</id>
+    <coordinates>
+      <x>693</x>
+      <y>1750</y>
+      <w>266</w>
+      <h>63</h>
+    </coordinates>
+    <panel_attributes>bg=red
+*cvm_callback*
+(args:CVMValue*, type_codes:int*, 
+num_args:int, ret:CVMRetValueHandle,
+fhandle: void*)</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>896</x>
+      <y>1806</y>
+      <w>112</w>
+      <h>28</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;.</panel_attributes>
+    <additional_attributes>10.0;10.0;140.0;20.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLState</id>
+    <coordinates>
+      <x>721</x>
+      <y>1862</y>
+      <w>238</w>
+      <h>56</h>
+    </coordinates>
+    <panel_attributes>bg=red
+*cvm_callback_finalizer*
+(fhandle: void*)</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>889</x>
+      <y>1848</y>
+      <w>112</w>
+      <h>28</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;.</panel_attributes>
+    <additional_attributes>10.0;20.0;140.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLSpecialState</id>
+    <coordinates>
+      <x>1400</x>
+      <y>1659</y>
+      <w>28</w>
+      <h>28</h>
+    </coordinates>
+    <panel_attributes>bg=green
+type=decision</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1421</x>
+      <y>1666</y>
+      <w>112</w>
+      <h>21</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;-</panel_attributes>
+    <additional_attributes>10.0;10.0;140.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1183</x>
+      <y>1666</y>
+      <w>231</w>
+      <h>91</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;-
+callable(arg)</panel_attributes>
+    <additional_attributes>10.0;110.0;230.0;110.0;310.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLState</id>
+    <coordinates>
+      <x>1645</x>
+      <y>1393</y>
+      <w>294</w>
+      <h>42</h>
+    </coordinates>
+    <panel_attributes>ObjectBase.__init_handle_by_constructor__
+(self,fconstructor,*args)</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1778</x>
+      <y>1428</y>
+      <w>21</w>
+      <h>70</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;-</panel_attributes>
+    <additional_attributes>10.0;80.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLObject</id>
+    <coordinates>
+      <x>686</x>
+      <y>1631</y>
+      <w>581</w>
+      <h>336</h>
+    </coordinates>
+    <panel_attributes>*python函数 ---&gt; tvm函数*
+   转换
+
+*注册函数时调用*
+valign=top</panel_attributes>
     <additional_attributes/>
   </element>
 </diagram>

@@ -1,6 +1,8 @@
 #ifndef CVM_INCLUDE_SUPPORT_LOGGING_H_
 #define CVM_INCLUDE_SUPPORT_LOGGING_H_
 
+#include <cvm/runtime/c_runtime_api.h>
+
 #include <iostream>
 #include <sstream>
 
@@ -35,6 +37,8 @@
 
 namespace cvm {
 namespace runtime {
+
+CVM_DLL std::string Backtrace();
 
 class Error : public std::runtime_error {
  public:

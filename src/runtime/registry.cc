@@ -3,6 +3,7 @@
 //
 
 #include <cvm/runtime/registry.h>
+#include <cvm/runtime/thread_local.h>
 
 #include <mutex>
 #include <unordered_map>
@@ -75,6 +76,21 @@ std::vector<std::string> Registry::ListNames() {
 
 }  // namespace runtime
 }  // namespace cvm
+
+class CVMFuncThreadLocalEntry {
+ public:
+  std::vector<std::string> ret_vec_str;
+  std::vector<const char*> ret_vec_charp;
+};
+
+typedef cvm::runtime::ThreadLocalStore<CVMFuncThreadLocalEntry> CVMFuncThreadLocalStore;
+
+int CVMFuncRegisterGlobal(const char* name, CVMFunctionHandle f, int override) {
+  API_BEGIN();
+  cvm::runtime::Registry::Register(name, override != 0)
+      .set_body(*static_cast<cvm::runtime::PackedFunc*>(f));
+  API_END();
+}
 
 int CVMFuncListGlobalNames(int* out_size, const char*** out_array) {
   auto ret_vec = cvm::runtime::Registry::ListNames();

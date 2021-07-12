@@ -1,4 +1,5 @@
 from ..base import get_last_ffi_error
+from libcpp.vector cimport vector
 from cpython.version cimport PY_MAJOR_VERSION
 from libc.stdint cimport int32_t, int64_t, uint64_t, uint32_t, uint8_t, uint16_t
 import ctypes
@@ -18,7 +19,8 @@ cdef enum CVMArgTypeCode:
     kCVMStr = 11
     kCVMBytes = 12
     kCVMNDArrayHandle = 13
-    kCVMObjectRValueRefArg = 14
+    kCVMObjectRefArg = 14
+    kCVMExtBegin = 15
 
 cdef extern from "cvm/runtime/c_runtime_api.h":
     ctypedef struct DLDataType:
@@ -76,9 +78,26 @@ ctypedef void (*CVMPackedFuncFinalizer)(void *resource_handle)
 
 
 cdef extern from "cvm/runtime/c_runtime_api.h":
+    void CVMAPISetLastError(const char *msg)
     const char *CVMGetLastError()
-    int CVMFuncGetGlobal(const char *name, CVMPackedFuncHandle *out)
-    int CVMFuncListGlobalNames(int *out_size, const char** out_array)
+    int CVMFuncGetGlobal(const char *name,
+                         CVMPackedFuncHandle *out)
+    int CVMFuncCall(CVMPackedFuncHandle func,
+                    CVMValue *arg_values,
+                    int *type_codes,
+                    int num_args,
+                    CVMValue *ret_val,
+                    int *ret_type_code)
+    int CVMFuncListGlobalNames(int *out_size,
+                               const char** out_array)
+    int CVMObjectGetTypeIndex(ObjectHandle obj,
+                              unsigned *out_index)
+    int CVMFuncCreateFromCFunc(CVMPackedCFunc func,
+                               void* resource_handle,
+                               CVMPackedFuncFinalizer fin,
+                               CVMPackedFuncHandle *out)
+    int CVMCbArgToReturn(CVMValue* value, int* code)
+    int CVMFuncFree(CVMPackedFuncHandle func)
 
 
 cdef inline py_str(const char * x):
@@ -109,6 +128,10 @@ cdef inline int CALL(int ret) except -2:
     if ret != 0:
         raise get_last_ffi_error()
     return 0
+
+cdef inline object ctypes_handle(void *chandle):
+    """Cast C handle to ctypes handle."""
+    return ctypes.cast(<unsigned long long> chandle, ctypes.c_void_p)
 
 cdef inline void *c_handle(object handle):
     """Cast C types handle to c handle."""

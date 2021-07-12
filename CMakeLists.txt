@@ -19,6 +19,9 @@ add_library(cvm_objs OBJECT ${OBJ_SRCS})
 add_library(cvm SHARED $<TARGET_OBJECTS:cvm_objs>)
 set_property(TARGET cvm APPEND PROPERTY LINK_OPTIONS "${CVM_VISIBILITY_FLAGS}")
 
+set(USE_LIBBACKTRACE AUTO)
+include(cmake/modules/Logging.cmake)
+
 set(CVM_TEST_LIBRARY_NAME cvm)
 
 # Tests
