@@ -908,6 +908,18 @@ inline CVMArgValue::operator DLDataType() const {
 
 inline CVMArgValue::operator DataType() const { return DataType(operator DLDataType()); }
 
+template <typename T, typename>
+inline CVMMovableArgValue_::operator T() const {
+  if (type_code_ == kCVMObjectRValueRefArg) {
+    auto **ref = static_cast<Object**>(value_.v_handle);
+    if (ObjectTypeChecker<T>::Check(*ref)) {
+      return T(ObjectPtr<Object>::MoveFromRValueRefArg(ref));
+    }
+  }
+  // fallback
+  return PackedFuncValueConverter<T>::From(AsArgValue());
+}
+
 inline const char* ArgTypeCode2Str(int type_code) {
   switch (type_code) {
     case kDLInt:

@@ -22,7 +22,6 @@ cdef int cvm_callback(CVMValue *args,
     for i in range(num_args):
         value = args[i]
         tcode = type_codes[i]
-        print("tcode: ", i, tcode)
         if (tcode == kCVMObjectHandle or
             tcode == kCVMPackedFuncHandle or
             tcode == kCVMModuleHandle or
@@ -47,6 +46,8 @@ cdef int cvm_callback(CVMValue *args,
             raise ValueError("PackedFunction can only support one return value")
         temp_args = []
         make_arg(rv, &value, &tcode, temp_args)
+        CALL(CVMCFuncSetReturn(ret, &value, &tcode, 1))
+    return 0
 
 cdef object make_packed_func(CVMPackedFuncHandle chandle, int is_global):
     obj = _CLASS_PACKED_FUNC.__new__(_CLASS_PACKED_FUNC)
@@ -93,7 +94,7 @@ cdef inline int make_arg(object arg,
         tcode[0] = kCVMObjectHandle
     elif isinstance(arg, _CVM_COMPATS):
         ptr = arg._cvm_handle
-        value[0].v_handle = (<void*>ptr)
+        value[0].v_handle = (<void *> ptr)
         tcode[0] = arg.__class__._cvm_tcode
     elif isinstance(arg, Integral):
         value[0].v_int64 = arg
@@ -118,8 +119,8 @@ cdef inline int make_arg(object arg,
         tcode[0] = kCVMStr
         temp_args.append(str)
     elif isinstance(arg, Device):
-        value[0].v_device = (<DLDevice*>(
-            <unsigned long long>ctypes.addressof(arg)))[0]
+        value[0].v_device = (<DLDevice *> (
+            <unsigned long long> ctypes.addressof(arg)))[0]
         tcode[0] = kDLDevice
     elif isinstance(arg, (bytes, bytearray)):
         # from_buffer only takes in bytearray.
@@ -133,8 +134,8 @@ cdef inline int make_arg(object arg,
             (ctypes.c_byte * len(arg)).from_buffer(arg),
             ctypes.POINTER(ctypes.c_byte))
         arr.size = len(arg)
-        value[0].v_handle = <void*>(
-            <unsigned long long>ctypes.addressof(arr))
+        value[0].v_handle = <void *> (
+            <unsigned long long> ctypes.addressof(arr))
         tcode[0] = kCVMBytes
         temp_args.append(arr)
     elif isinstance(arg, string_types):
@@ -144,21 +145,21 @@ cdef inline int make_arg(object arg,
         temp_args.append(tstr)
     elif isinstance(arg, (list, tuple, dict, _CLASS_OBJECT_GENERIC)):
         arg = _FUNC_CONVERT_TO_OBJECT(arg)
-        value[0].v_handle = (<ObjectBase>arg).chandle
+        value[0].v_handle = (<ObjectBase> arg).chandle
         tcode[0] = kCVMObjectHandle
         temp_args.append(arg)
     elif isinstance(arg, _CLASS_MODULE):
         value[0].v_handle = c_handle(arg.handle)
         tcode[0] = kCVMModuleHandle
     elif isinstance(arg, PackedFuncBase):
-        value[0].v_handle = (<PackedFuncBase>arg).chandle
+        value[0].v_handle = (<PackedFuncBase> arg).chandle
         tcode[0] = kCVMPackedFuncHandle
     elif isinstance(arg, ctypes.c_void_p):
-        value[0].v_handle = &((<ObjectBase>(arg.obj)).chandle)
+        value[0].v_handle = &((<ObjectBase> (arg.obj)).chandle)
         tcode[0] = kCVMObjectRefArg
     elif callable(arg):
         arg = convert_to_cvm_func(arg)
-        value[0].v_handle = (<PackedFuncBase>arg).chandle
+        value[0].v_handle = (<PackedFuncBase> arg).chandle
         tcode[0] = kCVMPackedFuncHandle
         temp_args.append(arg)
     else:

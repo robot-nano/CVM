@@ -92,6 +92,20 @@ CVM_DLL int CVMFuncCall(CVMFunctionHandle func, CVMValue* arg_values, int* type_
                         CVMValue* ret_val, int* ret_type_code);
 
 /*!
+ * \brief Set the return value of CVMPackedFunc.
+ *
+ *  This function is called by CVMPackedFunc to set the return value.
+ *  When this function is not called, the function returns null by default.
+ *
+ * \param ret The return value handle, pass by ret in CVMPackedCFunc
+ * \param value
+ * \param type_code
+ * \param num_ret
+ * \return
+ */
+CVM_DLL int CVMCFuncSetReturn(CVMRetValueHandle ret, CVMValue* value, int* type_code, int num_ret);
+
+/*!
  * \brief Inplace translate callback argument value to return value.
  *  This is only needed for non-POD arguments.
  *
@@ -108,6 +122,10 @@ CVM_DLL int CVMFuncFree(CVMFunctionHandle func);
 typedef int (*CVMPackedCFunc)(CVMValue* args, int* type_codes, int num_args,
                               CVMRetValueHandle ret, void* resource_handle);
 
+/*!
+ * \brief C callback to free the resource handle in C packed function.
+ * \param resource_handle The handle additional resource handle from front-end.
+ */
 typedef void (*CVMPackedFuncFinalizer)(void* resource_handle);
 
 /*!

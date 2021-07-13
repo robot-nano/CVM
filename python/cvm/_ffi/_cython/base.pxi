@@ -46,7 +46,7 @@ cdef extern from "cvm/runtime/c_runtime_api.h":
         void *manager_ctx
         void (*deleter)(DLManagedTensor *self)
 
-    ctypedef union CVMValue:
+    ctypedef struct CVMValue:
         int64_t v_int64
         double v_float64
         void *v_handle
@@ -88,6 +88,10 @@ cdef extern from "cvm/runtime/c_runtime_api.h":
                     int num_args,
                     CVMValue *ret_val,
                     int *ret_type_code)
+    int CVMCFuncSetReturn(CVMRetValueHandle ret,
+                          CVMValue *value,
+                          int *type_code,
+                          int num_ret)
     int CVMFuncListGlobalNames(int *out_size,
                                const char** out_array)
     int CVMObjectGetTypeIndex(ObjectHandle obj,

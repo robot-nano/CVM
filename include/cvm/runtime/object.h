@@ -270,6 +270,7 @@ class ObjectPtr {
   template <typename>
   friend class ObjAllocatorBase;
   friend class CVMRetValue;
+  friend class CVMMovableArgValue_;
   template <typename RelayRefType, typename ObjType>
   friend RelayRefType GetRef(const ObjType* ptr);
   template <typename BaseType, typename ObjType>

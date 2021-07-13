@@ -221,6 +221,14 @@ int CVMFuncCall(CVMFunctionHandle func, CVMValue* arg_values, int* type_codes, i
   API_END();
 }
 
+int CVMCFuncSetReturn(CVMRetValueHandle ret, CVMValue* value, int* type_code, int num_ret) {
+  API_BEGIN();
+  ICHECK_EQ(num_ret, 1);
+  CVMRetValue* rv = static_cast<CVMRetValue*>(ret);
+  *rv = CVMArgValue(value[0], type_code[0]);
+  API_END();
+}
+
 int CVMCbArgToReturn(CVMValue* value, int* code) {
   API_BEGIN();
   cvm::runtime::CVMRetValue rv;
