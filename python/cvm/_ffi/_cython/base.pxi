@@ -46,7 +46,7 @@ cdef extern from "cvm/runtime/c_runtime_api.h":
         void *manager_ctx
         void (*deleter)(DLManagedTensor *self)
 
-    ctypedef struct CVMValue:
+    ctypedef union CVMValue:
         int64_t v_int64
         double v_float64
         void *v_handle
@@ -104,7 +104,7 @@ cdef extern from "cvm/runtime/c_runtime_api.h":
     int CVMFuncFree(CVMPackedFuncHandle func)
 
 
-cdef inline py_str(const char * x):
+cdef inline py_str(const char *x):
     if PY_MAJOR_VERSION < 3:
         return x
     else:

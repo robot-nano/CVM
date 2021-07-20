@@ -46,9 +46,6 @@ uint8_t ParseCustomDataType(const std::string& s, const char** scan) {
   return GetCustomTypeCode(type_name);
 }
 
-int CVMFuncCreateFromCFunc(CVMPackedCFunc func, void* resource_handle, CVMPackedFuncFinalizer fin,
-                           CVMFunctionHandle* out) {}
-
 std::string NormalizeError(std::string err_msg) {
   int line_number = 0;
   std::istringstream is(err_msg);

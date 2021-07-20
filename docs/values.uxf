@@ -1,0 +1,511 @@
+<?xml version="1.0" encoding="UTF-8"?><diagram program="umlet" version="13.3">
+  <zoom_level>8</zoom_level>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>864</x>
+      <y>352</y>
+      <w>328</w>
+      <h>328</h>
+    </coordinates>
+    <panel_attributes>TVMPODValue_
+--
+# value_: TVMValue
+# type_code_: int
+--
+# TVMPODValue_()
+# TVMPODValue_(TVMValue value, int type_code)
++ int type_code() const
+/*&lt;T&gt;*/
++ T* ptr() const
+/*&lt;TObject&gt;*/
++ IsObjectRef() const: bool
+/*&lt;TObject&gt;*/
++ AsObjectRef() const: TObjectRef
+--
++ operator double() const
++ operator int64_t() const
++ operator uint64_t() const
++ operator int() const
++ operator bool() const
++ operator void*() const
++ operator DLTensor*() const
++ operator NDArray() const
++ operator Module() const
++ operator Device() const
++ operator type_code() const</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>864</x>
+      <y>872</y>
+      <w>344</w>
+      <h>368</h>
+    </coordinates>
+    <panel_attributes>TVMArgValue
+--
+--
++ TVMArgValue()
++ TVMArgValue(value: TVMValue, type_code: int)
++ value() const : const TVMValue&amp;
+--
+/+ using TVMPODValue_::operator double/
+/+ using TVMPODValue_::operator int64_t/
+/+ using TVMPODValue_::operator uint64_t/
+/+ using TVMPODValue_::operator int/
+/+ using TVMPODValue_::operator bool/
+/+ using TVMPODValue_::operator void*/
+/+ using TVMPODValue_::operator DLTensor*/
+/+ using TVMPODValue_::operator NDArray/
+/+ using TVMPODValue_::operator Device/
+/+ using TVMPODValue_::operator Module/
+/+ using TVMPODValue_::AsObjectRef/
+/+ using TVMPODValue_::IsObjectRef/
+
++ operator std::string() const
++ operator PackedFunc() cosnt
+/*&lt;FType&gt;*/
++ operator TypedPackedFunc&lt;FType&gt;() const
++ operator T() const
++ operator DLDataType() const
++ operator DataType() const
+/*&lt;T, enable_if&lt;is_class&lt;T&gt;::value&gt;::type&gt;*/
+operator T() const
+</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>432</x>
+      <y>872</y>
+      <w>392</w>
+      <h>352</h>
+    </coordinates>
+    <panel_attributes>TVMMovableArgValue_
+--
+--
++ TVMMovableArgValue_(value: TVMValue, type_code: int)
+- AsArgValue() const : TVMArgValue
+--
+/+ using TVMPODValue_::operator double/
+/+ using TVMPODValue_::operator int64_t/
+/+ using TVMPODValue_::operator uint64_t/
+/+ using TVMPODValue_::operator int/
+/+ using TVMPODValue_::operator bool/
+/+ using TVMPODValue_::operator void*/
+/+ using TVMPODValue_::operator DLTensor*/
+/+ using TVMPODValue_::operator NDArray/
+/+ using TVMPODValue_::operator Device/
+/+ using TVMPODValue_::operator Module/
+
++ operator std::string() const
++ operator PackedFunc() const
+/*&lt;FType&gt;*/
++ operator TypedPackedFunc&lt;FType&gt;() const
++ operator DLDataType() const
++ operator DataType() const
++ operator TVMArgValue() const
+/*&lt;T, enable_if&lt;is_base_of&lt;ObjectRef, T&gt;::value&gt;::type&gt;*/
+operator T() const</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1248</x>
+      <y>872</y>
+      <w>496</w>
+      <h>824</h>
+    </coordinates>
+    <panel_attributes>TVMRetValue
+--
+--
++ TVMRetValue()
++ TVMRetValue(other: TVMRetValue&amp;&amp;)
++ TVMRetValue(other: const TVMRetValue&amp;)
++ ~TVMRetValue()
++ MoveToCHost(ret_value: TVMValue*, ret_type_code: int*) : void
+_+ MoveFromCHost(value: TVMValue, type_code: int) : TVMRetValue_
++ value() const : const TVMValue&amp;
+/*&lt;T, enable_if&lt;is_class&lt;T&gt;::value&gt;::type&gt;*/
++ operator T() const
+/*&lt;T&gt;*/
+- Assign(other: const T&amp;) : void
+- SwitchToPOD(type_code: int) : void
+/*&lt;T&gt;*/
+- SwitchToClass(type_code: int, v: T) : void
+- SwitchToObject(type_code: int, other: ObjectPtr&lt;Object&gt;) : void
+- Clear() : void
+--
+/+ using TVMPODValue_::operator double/
+/+ using TVMPODValue_::operator int64_t/
+/+ using TVMPODValue_::operator uint64_t/
+/+ using TVMPODValue_::operator int/
+/+ using TVMPODValue_::operator bool/
+/+ using TVMPODValue_::operator void*/
+/+ using TVMPODValue_::operator DLTensor*/
+/+ using TVMPODValue_::operator NDArray/
+/+ using TVMPODValue_::operator Device/
+/+ using TVMPODValue_::operator Module/
+/+ using TVMPODValue_::AsObjectRef/
+/+ using TVMPODValue_::IsObjectRef/
+
++ operator std::string() const
++ operator DLDataType() const
++ operator DataType() const
++ operator PackedFunc() const
+/*&lt;FType&gt;*/
++ operator TypedPackedFunc&lt;FType&gt;() const
+--
++ operator=(value: double) : TVMRetValue&amp;
++ operator=(value: int64_t) : TVMRetValue&amp;
+|
++ operator=(value: int) : TVMRetValue&amp;
++ operator=(value: bool) : TVMRetValue&amp;
++ operator=(value: void*) : TVMRetValue&amp;
+|
++ operator=(other: NDArray) : TVMRetValue&amp;
++ operator=(m: Module) : TVMRetValue&amp;
++ operator=(value: DLDevice) : TVMRetValue&amp;
+---
++ operator=(other: TVMRetValue&amp;&amp;) : TVMRetValue&amp;
++ operator=(other: const TVMRetValue&amp;) : TVMRetValue&amp;
++ operator=(other: const TVMArgValue&amp;) : TVMRetValue&amp;
++ operator=(other: TVMMovableArgValue_&amp;&amp;) : TVMRetValue&amp;
++ operator=(value: nullptr_t) : TVMRetValue&amp;
++ operator=(t: DLDataType) : TVMRetValue&amp;
++ operator=(other: const DataType&amp;) : TVMRetValue&amp;
++ operator=(value: std::string) : TVMRetValue&amp;
++ operator=(value: TVMByteArray) : TVMRetValue&amp;
++ operator=(f: PackedFunc) : TVMRetValue&amp;
+/*&lt;FType&gt;*/
++ operator=(f: const TypedPackedFunc&lt;FType&gt;&amp;) : TVMRetValue&amp;
+/*&lt;TObjectRef, enable_if&lt;is_base_of&lt;ObjectRef, TObjectRef&gt;::value&gt;::type&gt;*/
++ operator=(other: TObjectRef) : TVMRetValue&amp;</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>752</x>
+      <y>160</y>
+      <w>152</w>
+      <h>128</h>
+    </coordinates>
+    <panel_attributes>&lt;&lt;union&gt;&gt;
+TVMValue
+--
+v_int64: int64_t
+v_float64: double
+v_handle: void*
+v_str: const char*
+v_type: DLDataType
+v_device: DLDevice</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>808</x>
+      <y>280</y>
+      <w>72</w>
+      <h>112</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;.</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;120.0;70.0;120.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1000</x>
+      <y>672</y>
+      <w>24</w>
+      <h>216</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;-</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;120.0;10.0;250.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1000</x>
+      <y>672</y>
+      <w>496</w>
+      <h>216</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;-</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;120.0;600.0;120.0;600.0;250.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>608</x>
+      <y>672</y>
+      <w>416</w>
+      <h>216</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;-</panel_attributes>
+    <additional_attributes>500.0;10.0;500.0;120.0;10.0;120.0;10.0;250.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1520</x>
+      <y>0</y>
+      <w>456</w>
+      <h>184</h>
+    </coordinates>
+    <panel_attributes>PackedFunc
+--
+- body_ : FType
+--
++ PackedFunc()
++ PackedFunc(null: nullptr_t)
++ PackedFunc(body: FType)
+/*&lt;Args...&gt;*/
++ operator()(args: Args&amp;&amp;...) const: TVMRetValue
++ CallPacked(args: TVMArgs, rv: TVMRetValue*) const : void
++ body() const : FType
++ operator==(null: nullptr_t) const : bool
++ operator!=(null: nullptr_t) const : bool
+--
+using FType = std::function&lt;void(TVMArgs args, TVMRetValue* rv)&gt;;</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1872</x>
+      <y>312</y>
+      <w>592</w>
+      <h>272</h>
+    </coordinates>
+    <panel_attributes>template=R, Args...|&lt;R(Args..)
+TypedPackedFunc
+--
+- packed_ : PackedFunc
+--
++ TypedPackedFunc()
++ TypedPackedFunc(null: nullptr_t)
++ TypedPackedFunc(packed: PackedFunc)
++ TypedPackedFunc(value: const TVMRetValue&amp;)
++ TypedPackedFunc(value: Const TVMArgValue&amp;)
++ TypedPackedFunc(value: TVMMovableArgValueWithContext_&amp;&amp;)
+/*&lt;FLambda, enable_if&lt;is_convertible&lt;FLambda, std::function&lt;R(Args...)&gt;::value&gt;::type&gt;*/
++ TypedPackedFunc(typed_lambda: const FLambda&amp;, name: std::string)
+/*&lt;FLambda, enable_if&lt;is_convertible&lt;FLambda, std::function&lt;R(Args...)&gt;&gt;::value&gt;::type&gt;*/
++ TypedPackedFunc(typed_lambda: FLambda)
++ operator=(packed: PackedFunc) : TSelf&amp;
++ operator()(args: Args...) const : R
++ operator PackedFunc() const
++ packed() const : const PackedFunc&amp;
++ operator==(null: nullptr_t) const : bool
++ operator!=(null: nullptr_t) const : bool</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1712</x>
+      <y>176</y>
+      <w>176</w>
+      <h>200</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;.</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;230.0;200.0;230.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>2136</x>
+      <y>144</y>
+      <w>192</w>
+      <h>56</h>
+    </coordinates>
+    <panel_attributes>template=FType
+TypedPackedFunc</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>2216</x>
+      <y>192</y>
+      <w>112</w>
+      <h>144</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;.
+specialization</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;160.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>0</x>
+      <y>520</y>
+      <w>784</w>
+      <h>128</h>
+    </coordinates>
+    <panel_attributes>TVMMovableArgValueWithContext_
+--
+- value_ : TVMMovableArgValue_
+- arg_index_ : int
+- optional_name_ : const std::string*
+--
++ TVMMovableArgValueWithContext_(value: TVMValue, type_code: int, arg_index: int, optional_name: const string*)
+/*&lt;T&gt;*/
++ operator T() const</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>472</x>
+      <y>640</y>
+      <w>24</w>
+      <h>248</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;.</panel_attributes>
+    <additional_attributes>10.0;290.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1920</x>
+      <y>864</y>
+      <w>640</w>
+      <h>352</h>
+    </coordinates>
+    <panel_attributes>TVMArgsSetter
+--
+- values_ : TVMValue*
+- type_codes_ : int*
+--
++ TVMArgsSetter(values: TVMValue*, type_codes: int*)
+/*&lt;TObjectRef&gt;*/
+- SetObject(i: size_t, value: TObject&amp;&amp;) const : void
+--
++ operator()(i: size_t, value: double) const : void
+/*&lt;T, enable_if&lt;is_integral&lt;T&gt;::value&gt;::type&gt;*/
++ operator()(i: size_t, value T) const : void
++ operator()(i: size_t, value: uint64_t) const : void
++ operator()(i: size_t, value: void*) const : void
++ operator()(i: size_t, value: DLTensor*) const : void
++ operator()(i: size_t, value: Device) const: void
+
++ operator()(i: size_t, value: DLDataType) const : void
++ operator()(i: size_t, dtype: DataType) const : void
++ operator()(i: size_t, value: const char*) const : void
++ operator()(i: size_t, value: const TVMByteArray&amp;) const : void
+/*&lt;Ftype&gt;*/
++ operator()(i: size_t, value: const TypedPackedFunc&lt;FType&gt;&amp;) const : void
++ operator()(i: size_t, value: const TVMRetValue&amp;) const : void
+/*&lt;TObject, enable_if&lt;is_base_of&lt;ObjectRef, TObjectRef&gt;::value&gt;::type&gt;*/
++ operator()(i: size_t, value: const TObjectRef&amp;) const : void
+/*&lt;Tobject, enable_if&lt;is_base_of&lt;ObjectRef, remove_reference&lt;TObjectRef&gt;::type&gt;::value&gt;::type&gt;*/
++ operator()(i: size_t, value: TObjectRef&amp;&amp;) const : void</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>2712</x>
+      <y>1008</y>
+      <w>344</w>
+      <h>72</h>
+    </coordinates>
+    <panel_attributes>template=I:size_t, F&gt;
+for_each_dispatcher&lt;true, I, F&gt;
+--
+_run(f: const F&amp;) : void_</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>2712</x>
+      <y>872</y>
+      <w>360</w>
+      <h>80</h>
+    </coordinates>
+    <panel_attributes>template=stop:bool, I:size_t, F&gt;
+for_each_dispatcher
+--
+/*&lt;T, Args...&gt;*/
+_run(f: const F&amp;, value: T&amp;&amp;, args: Args&amp;&amp;...) : void_</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>2848</x>
+      <y>944</y>
+      <w>24</w>
+      <h>88</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;.</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;90.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLState</id>
+    <coordinates>
+      <x>2704</x>
+      <y>592</y>
+      <w>328</w>
+      <h>32</h>
+    </coordinates>
+    <panel_attributes>bg=red
+&lt;F, Args...&gt;
+for_each(f: const F&amp;, args: Args&amp;&amp;...) : void</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLState</id>
+    <coordinates>
+      <x>2584</x>
+      <y>672</y>
+      <w>560</w>
+      <h>48</h>
+    </coordinates>
+    <panel_attributes>bg=blue
+for_each_dispatcher&lt;sizeof...(Args)==0, 0, F&gt;::run(f, std::forward&lt;Arsg&gt;(args)...)</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>2864</x>
+      <y>616</y>
+      <w>24</w>
+      <h>72</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;-</panel_attributes>
+    <additional_attributes>10.0;70.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLObject</id>
+    <coordinates>
+      <x>2568</x>
+      <y>536</y>
+      <w>592</w>
+      <h>224</h>
+    </coordinates>
+    <panel_attributes>TVMArgsSetter参数解包
+valign=top</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>2864</x>
+      <y>752</y>
+      <w>24</w>
+      <h>144</h>
+    </coordinates>
+    <panel_attributes>lt=.</panel_attributes>
+    <additional_attributes>10.0;160.0;10.0;10.0</additional_attributes>
+  </element>
+</diagram>

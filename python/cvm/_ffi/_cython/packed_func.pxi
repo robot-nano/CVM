@@ -309,6 +309,21 @@ _CLASS_OBJECT = None
 _CLASS_OBJECT_GENERIC = None
 _FUNC_CONVERT_TO_OBJECT = None
 
+def _set_class_module(module_class):
+    """Initialize the module."""
+    global _CLASS_MODULE
+    _CLASS_MODULE = module_class
+
 def _set_class_packed_func(func_class):
     global _CLASS_PACKED_FUNC
     _CLASS_PACKED_FUNC = func_class
+
+def _set_class_object(obj_class):
+    global _CLASS_OBJECT
+    _CLASS_OBJECT = obj_class
+
+def _set_class_object_generic(object_generic_class, func_convert_to_object):
+    global _CLASS_OBJECT_GENERIC
+    global _FUNC_CONVERT_TO_OBJECT
+    _CLASS_OBJECT_GENERIC = object_generic_class
+    _FUNC_CONVERT_TO_OBJECT = func_convert_to_object
