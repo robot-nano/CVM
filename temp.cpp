@@ -9,6 +9,8 @@ class Object {
   int a = 10;
 };
 
+// test PR
+
 void packed_c_func_finalizer(void* resource_handle) {
   delete static_cast<Object*>(resource_handle);
 }
